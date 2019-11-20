@@ -1,4 +1,4 @@
-(ns defwrapper
+(ns tortilla.wrap
   (:require [clojure.string :as str]))
 
 (set! *warn-on-reflection* true)
