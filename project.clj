@@ -8,6 +8,13 @@
 
   :dependencies []
 
+  :test-paths ["test/clj"]
+
+  :repl-options {:init-ns tortilla.wrap-test}
+
   :profiles
   {:provided
-   {:dependencies [[org.clojure/clojure "1.10.1"]]}})
+   {:dependencies [[org.clojure/clojure "1.10.1"]]}
+
+   :test
+   {:java-source-paths ["test/java"]}})
