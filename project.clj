@@ -27,7 +27,11 @@
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
 
    :dev
-   {:dependencies [[org.clojure/test.check "0.10.0"]]}
+   {:dependencies [[org.clojure/test.check "0.10.0"]
+                   [orchestra "2018.12.06-2"]]
+    :injections [(require 'tortilla.specs) ;; loads all instrumented fns
+                 (require 'orchestra.spec.test)
+                 (orchestra.spec.test/instrument)]}
 
    :kaocha
    {:dependencies [[lambdaisland/kaocha "0.0-554"]]
