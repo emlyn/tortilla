@@ -12,11 +12,21 @@
 (defn return-type [^java.lang.reflect.Method method]
   (.getReturnType method))
 
-(defn parameter-types [^java.lang.reflect.Method method]
-  (seq (.getParameterTypes method)))
+(defn method-static? [^java.lang.reflect.Method method]
+  (java.lang.reflect.Modifier/isStatic (.getModifiers method)))
+
+(defn method-public? [^java.lang.reflect.Method method]
+  (java.lang.reflect.Modifier/isPublic (.getModifiers method)))
+
+(defn parameter-types [^Class klazz ^java.lang.reflect.Method method]
+  (if (method-static? method)
+    (seq (.getParameterTypes method))
+    (cons klazz (seq (.getParameterTypes method)))))
 
 (defn parameter-count [^java.lang.reflect.Method method]
-  (.getParameterCount method))
+  (if (method-static? method)
+    (.getParameterCount method)
+    (inc (.getParameterCount method))))
 
 (defn method-name [^java.lang.reflect.Method method]
   (.getName method))
@@ -37,12 +47,6 @@
      (str (.getName (.getComponentType class)) "-array")
      (.getName class))
    (str/replace "." "-")))
-
-(defn method-static? [^java.lang.reflect.Method method]
-  (java.lang.reflect.Modifier/isStatic (.getModifiers method)))
-
-(defn method-public? [^java.lang.reflect.Method method]
-  (java.lang.reflect.Modifier/isPublic (.getModifiers method)))
 
 (defn primitive-class [sym]
   ('{byte java.lang.Byte/TYPE
@@ -103,49 +107,45 @@
       (vary-meta value assoc :tag tag))))
 
 (defn wrapper-multi-tail [klazz methods]
-  (let [static? (method-static? (first methods))
-        this    (gensym "this")
-        arg-vec (take (parameter-count (first methods)) (repeatedly gensym))
+  (let [arg-vec (take (parameter-count (first methods)) (repeatedly gensym))
         ret     (if (apply = (map return-type methods))
                   (return-type (first methods))
                   java.lang.Object)]
-    `(~(tagged `[~@(when-not static? [this]) ~@arg-vec] ret)
+    `(~(tagged `[~@arg-vec] ret)
       (cond
         ~@(mapcat
            (fn [method]
              `[(and ~@(map (fn [sym ^Class klz]
                              `(instance? ~(ensure-boxed (class-name klz)) ~sym))
                            arg-vec
-                           (parameter-types method)))
+                           (parameter-types (resolve klazz) method)))
                (let [~@(mapcat (fn [sym ^Class klz]
                                  [sym (tagged-local sym klz)])
                                arg-vec
-                               (parameter-types method))]
-                 (~(if static?
+                               (parameter-types (resolve klazz) method))]
+                 (~(if (method-static? method)
                      (symbol (str klazz) (method-name method))
                      (symbol (str "." (method-name method))))
-                  ~@(when-not static? [(tagged this klazz)])
                   ~@arg-vec))])
            methods)))))
 
 (defn wrapper-tail [klazz method]
   (let [nam     (method-name method)
         ret     (return-type method)
-        par     (parameter-types method)
-        static? (method-static? method)
-        arg-vec (into (if static? [] [(tagged (gensym "this") klazz)])
+        par     (parameter-types (resolve klazz) method)
+        arg-vec (into []
                       (map #(tagged (gensym (class->name %)) %))
                       par)]
     `(~(tagged arg-vec ret)
-      (~(if static?
+      (~(if (method-static? method)
           (symbol (str klazz) nam)
           (symbol (str "." nam))) ~@(map #(vary-meta % dissoc :tag) arg-vec)))))
 
 (defn method-wrapper-form [fname klazz methods]
   (let [arities (group-by parameter-count methods)]
     `(defn ~fname
-       {:arglists '~(map (comp (partial into [klazz])
-                               parameter-types) methods)}
+       {:arglists '~(map (comp (partial into [])
+                               (partial parameter-types (resolve klazz))) methods)}
        ~@(map (fn [[cnt meths]]
                 (if (= 1 (count meths))
                   (wrapper-tail klazz (first meths))

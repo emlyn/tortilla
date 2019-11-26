@@ -3,20 +3,13 @@
             [tortilla.wrap :as w])
   (:import [tortilla TestClass]))
 
-(let [ns *ns*]
-  (use-fixtures
-    ;; Because symbols are quoted for passing in to macroexpand,
-    ;; we have to ensure that the tests are run in the context
-    ;; of this namespace, and not the namespace from where the
-    ;; tests are run, so that any non-fully-qualified symbols
-    ;; are resolved correctly.
-    :once
-    (fn [test-fn]
-      (binding [*ns* ns]
-        (test-fn)))))
-
 (deftest defwrapper-test
-  (let [result (macroexpand-1 '(w/defwrapper TestClass))]
-    (is (seq? result))
-    (is (= 2 (count result)) "Should have just `do` followed by one defn form")
-    (is (= 'do (first result)))))
+  (is (w/defwrapper TestClass))
+  (is (= "foo2_123_456"
+         (foo 123 456)))
+  (let [tc (TestClass.)]
+    (is (= "foo1_42"
+           (foo tc 42)))
+    ;; TODO: Handle varargs properly
+    (is (= "foo3_abc_def"
+           (foo tc (into-array ["abc" "def"]))))))
