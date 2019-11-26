@@ -24,6 +24,9 @@
   {:provided
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
 
+   :dev
+   {:dependencies [[org.clojure/test.check "0.10.0"]]}
+
    :kaocha
    {:dependencies [[lambdaisland/kaocha "0.0-554"]]
     :java-source-paths ["test/java"]}})

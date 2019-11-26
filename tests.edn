@@ -1,4 +1,8 @@
 #kaocha/v1
-{:tests [{:id         :unit
-          :test-paths ["test/clj"]}]
+{:tests [{:id           :unit
+          :test-paths   ["test/clj"]}
+         {:id           :spec
+          :type         :kaocha.type/spec.test.check
+          :source-paths ["src/clj" "test/specs"]
+          :test-paths   ["test/specs"]}]
  :plugins [:kaocha.plugin/print-invocations]}
