@@ -13,6 +13,8 @@
 
   :test-paths ["test/clj"]
 
+  :main tortilla.core
+
   :repl-options {:init-ns tortilla.wrap-test}
 
   :deploy-branches ["master"]
