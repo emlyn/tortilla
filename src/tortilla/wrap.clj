@@ -1,5 +1,6 @@
 (ns tortilla.wrap
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str])
+  (:import [java.lang.reflect Method Modifier]))
 
 (set! *warn-on-reflection* true)
 
@@ -9,26 +10,29 @@
 (defn constructors [^Class klazz]
   (.getDeclaredConstructors klazz))
 
-(defn return-type [^java.lang.reflect.Method method]
+(defn return-type [^Method method]
   (.getReturnType method))
 
-(defn method-static? [^java.lang.reflect.Method method]
-  (java.lang.reflect.Modifier/isStatic (.getModifiers method)))
+(defn method-static? [^Method method]
+  (Modifier/isStatic (.getModifiers method)))
 
-(defn method-public? [^java.lang.reflect.Method method]
-  (java.lang.reflect.Modifier/isPublic (.getModifiers method)))
+(defn method-public? [^Method method]
+  (Modifier/isPublic (.getModifiers method)))
 
-(defn parameter-types [^Class klazz ^java.lang.reflect.Method method]
+(defn method-varargs? [^Method method]
+  (.isVarArgs method))
+
+(defn parameter-types [^Class klazz ^Method method]
   (if (method-static? method)
     (seq (.getParameterTypes method))
     (cons klazz (seq (.getParameterTypes method)))))
 
-(defn parameter-count [^java.lang.reflect.Method method]
+(defn parameter-count [^Method method]
   (if (method-static? method)
     (.getParameterCount method)
     (inc (.getParameterCount method))))
 
-(defn method-name [^java.lang.reflect.Method method]
+(defn method-name [^Method method]
   (.getName method))
 
 (defn class-name [^Class klazz]
@@ -37,9 +41,9 @@
 (defn camel->kebab
   [string]
   (-> string
-      (clojure.string/replace #"(.)([A-Z][a-z]+)" "$1-$2")
-      (clojure.string/replace #"([a-z0-9])([A-Z])" "$1-$2")
-      (clojure.string/lower-case)))
+      (str/replace #"(.)([A-Z][a-z]+)" "$1-$2")
+      (str/replace #"([a-z0-9])([A-Z])" "$1-$2")
+      (str/lower-case)))
 
 (defn class->name [^Class class]
   (->
