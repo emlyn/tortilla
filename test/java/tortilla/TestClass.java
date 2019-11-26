@@ -7,9 +7,9 @@ public class TestClass {
         return "foo1_" + i;
     }
 
-    //public static String foo(long i, long j) {
-    //    return "foo2_" + i + "_" + j;
-    //}
+    public static String foo(long i, long j) {
+        return "foo2_" + i + "_" + j;
+    }
 
     public String foo(String... args) {
         return "foo3_" + String.join("_", args);
