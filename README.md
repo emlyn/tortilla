@@ -6,7 +6,7 @@
 > &nbsp; &nbsp; &nbsp; &nbsp; — *Felipe Esparza*
 
 [![Build](https://github.com/emlyn/tortilla/workflows/Build/badge.svg)](https://github.com/emlyn/tortilla/actions?query=workflow%3ABuild)
-[![Codecov](https://img.shields.io/codecov/c/github/emlyn/tortilla.svg)](https://codecov.io/gh/emlyn/tortilla)
+[![Coverage Status](https://coveralls.io/repos/github/emlyn/tortilla/badge.svg?branch=HEAD)](https://coveralls.io/github/emlyn/tortilla?branch=HEAD)
 [![Dependencies Status](https://versions.deps.co/emlyn/tortilla/status.svg)](https://versions.deps.co/emlyn/tortilla)
 
 ## Usage

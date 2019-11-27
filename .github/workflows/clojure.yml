@@ -24,5 +24,10 @@ jobs:
     - name: Run tests
       run: lein kaocha
 
-    - name: Push coverage
+    - name: Push coverage to Coveralls.io
+      run: |
+        PR=$(scripts/github_pr.sh ${{github.event_name}} ${{github.ref}})
+        scripts/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
+
+    - name: Push coverage to Codecov.io
       run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CodecovToken }} -f target/coverage/codecov.json
