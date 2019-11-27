@@ -9,9 +9,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+
+    - name: Cache maven dependencies
+      uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: mvn-${{ hashFiles('project.clj') }}
+        restore-keys: |
+          mvn-
+
     - name: Install dependencies
       run: lein deps
+
     - name: Run tests
       run: lein kaocha
+
     - name: Push coverage
       run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CodecovToken }} -f target/coverage/codecov.json
