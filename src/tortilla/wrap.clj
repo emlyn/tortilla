@@ -156,7 +156,7 @@
                   (wrapper-multi-tail klazz meths)))
               arities))))
 
-(defmacro defwrapper [klazz & [prefix]]
+(defmacro defwrapper [klazz & [{:keys [prefix]}]]
   (let [methods (->> klazz
                      resolve
                      class-methods
