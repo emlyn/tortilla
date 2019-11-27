@@ -5,4 +5,7 @@
           :type         :kaocha.type/spec.test.check
           :source-paths ["src/clj" "test/specs"]
           :test-paths   ["test/specs"]}]
- :plugins [:kaocha.plugin/print-invocations]}
+ :plugins [:kaocha.plugin/print-invocations
+           :kaocha.plugin/cloverage]
+ :cloverage/opts {:output "target/coverage"
+                  :html true}}

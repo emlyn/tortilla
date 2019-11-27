@@ -34,5 +34,6 @@
                  (orchestra.spec.test/instrument)]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "0.0-554"]]
+   {:dependencies [[lambdaisland/kaocha "0.0-554"]
+                   [lambdaisland/kaocha-cloverage "0.0-41"]]
     :java-source-paths ["test/java"]}})
