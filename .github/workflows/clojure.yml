@@ -1,0 +1,17 @@
+name: Clojure CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: lein deps
+    - name: Run tests
+      run: lein kaocha
+    - name: Push coverage
+      run: bash <(curl -s https://codecov.io/bash) -t ${{ secrets.CodecovToken }} -f target/coverage/codecov.json
