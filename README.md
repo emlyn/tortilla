@@ -5,6 +5,10 @@
 > If it was burritos, it was still - tortillas, beans and meat.\
 > &nbsp; &nbsp; &nbsp; &nbsp; — *Felipe Esparza*
 
+[![Build](https://github.com/emlyn/tortilla/workflows/Build/badge.svg)](https://github.com/emlyn/tortilla/actions?query=workflow%3ABuild)
+[![Codecov](https://img.shields.io/codecov/c/github/emlyn/tortilla.svg)](https://codecov.io/gh/emlyn/tortilla)
+[![Dependencies Status](https://versions.deps.co/emlyn/tortilla/status.svg)](https://versions.deps.co/emlyn/tortilla)
+
 ## Usage
 
 Tortilla uses reflection at compile time to automatically generate reflection-free
