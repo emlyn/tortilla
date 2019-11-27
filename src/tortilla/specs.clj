@@ -57,7 +57,7 @@
   :args (s/cat :sym simple-symbol?)
   :ret  symbol?
   :fn   #(or ('#{java.lang.Byte/TYPE java.lang.Short/TYPE java.lang.Integer/TYPE
-                 java.lang.Long/TYPE java.land.Float/TYPE java.lang.Double/TYPE
+                 java.lang.Long/TYPE java.lang.Float/TYPE java.lang.Double/TYPE
                  java.lang.Character/TYPE java.lang.Boolean/TYPE}
               (-> % :ret))
              (= (-> % :ret)
@@ -74,7 +74,7 @@
   :args (s/cat :sym simple-symbol?)
   :ret  simple-symbol?
   :fn   #(or ('#{java.lang.Byte java.lang.Short java.lang.Integer
-                 java.lang.Long java.land.Float java.lang.Double
+                 java.lang.Long java.lang.Float java.lang.Double
                  java.lang.Character java.lang.Boolean}
               (-> % :ret))
              (= (-> % :ret)
