@@ -9,4 +9,4 @@
            :kaocha.plugin/cloverage]
  :cloverage/opts {:output "target/coverage"
                   :html? true
-                  :coveralls? true}}
+                  :codecov? true}}
