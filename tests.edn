@@ -8,4 +8,5 @@
  :plugins [:kaocha.plugin/print-invocations
            :kaocha.plugin/cloverage]
  :cloverage/opts {:output "target/coverage"
-                  :html true}}
+                  :html? true
+                  :coveralls? true}}

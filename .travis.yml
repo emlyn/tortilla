@@ -1,0 +1,22 @@
+language: clojure
+
+jdk:
+  - openjdk8
+  - openjdk11
+
+cache:
+  directories:
+  - $HOME/.m2
+
+env:
+  global:
+    - LEIN_USE_BOOTCLASSPATH=no
+
+script:
+  - lein kaocha
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -f target/coverage/codecov.json
+
+notifications:
+  emlyn.corrin@gmail.com
