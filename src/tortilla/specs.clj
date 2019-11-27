@@ -67,7 +67,7 @@
   :args (s/cat :class ::class)
   :ret  (s/and ::class
                #(.isArray ^Class %))
-  :fn   #(= (.getElementType ^Class (:ret %))
+  :fn   #(= (.getComponentType ^Class (:ret %))
             (-> % :args :class)))
 
 (s/fdef w/ensure-boxed
