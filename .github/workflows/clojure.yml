@@ -19,7 +19,10 @@ jobs:
           mvn-
 
     - name: Install dependencies
-      run: lein deps
+      run: lein with-profile +clj-kondo,+kaocha deps
+
+    - name: Run lint check
+      run: lein clj-kondo --lint src:test
 
     - name: Run tests
       run: lein kaocha

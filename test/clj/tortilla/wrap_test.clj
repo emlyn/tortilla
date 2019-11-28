@@ -1,7 +1,9 @@
 (ns tortilla.wrap-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [tortilla.wrap :as w])
   (:import [tortilla TestClass]))
+
+(declare foo)
 
 (deftest defwrapper-test
   (is (w/defwrapper TestClass))

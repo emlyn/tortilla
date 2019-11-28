@@ -1,6 +1,6 @@
 (ns tortilla.core-test
-  (:require [tortilla.core :as c]
-            [clojure.test :refer :all]))
+  (:require [clojure.test :refer [deftest is]]
+            [tortilla.core :as c]))
 
 (deftest main-test
   (let [stdout (with-out-str (c/-main "Object" "java.lang.Number"))]

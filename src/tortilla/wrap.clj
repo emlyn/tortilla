@@ -150,7 +150,7 @@
     `(defn ~fname
        {:arglists '~(map (comp (partial into [])
                                (partial parameter-types (resolve klazz))) methods)}
-       ~@(map (fn [[cnt meths]]
+       ~@(map (fn [[_ meths]]
                 (if (= 1 (count meths))
                   (wrapper-tail klazz (first meths))
                   (wrapper-multi-tail klazz meths)))
@@ -167,42 +167,3 @@
        ~@(for [[mname meths] methods
                :let [fname (symbol (str prefix (camel->kebab mname)))]]
            (method-wrapper-form fname klazz meths)))))
-
-
-(comment
-  #_(binding [*print-meta* true]
-      (prn (macroexpand-1 '(defwrapper javax.sound.midi.MidiSystem "midi-sys-"))))
-
-  (defwrapper javax.sound.midi.MidiSystem "midi-sys-")
-  (defwrapper javax.sound.midi.Synthesizer "synth-")
-  (defwrapper javax.sound.midi.MidiChannel "chan-")
-
-  ;;; Play some tunes
-
-  (def synth (midi-sys-get-synthesizer))
-
-  (synth-open synth)
-
-  (def chan (first (synth-get-channels synth)))
-
-  (meta #'synth-get-channels)
-
-
-  (do
-    (chan-note-on chan 60 600)
-    (chan-note-on chan 64 600)
-    (chan-note-on chan 67 600)
-
-    (Thread/sleep 1100)
-
-    (chan-note-on chan 60 600)
-    (chan-note-on chan 64 600)
-    (chan-note-on chan 67 600)
-    (chan-note-on chan 71 600)))
-
-
-;; TODO:
-;; - better varargs
-;; - test if (long ... ) actually works
-;; - prevent unnecessary boxing
-;; - constructors

@@ -20,7 +20,8 @@
   :deploy-branches ["master"]
 
   :aliases
-  {"kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]}
+  {"kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
+   "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]}
 
   :profiles
   {:provided
@@ -28,7 +29,7 @@
 
    :dev
    {:dependencies [[org.clojure/test.check "0.10.0"]
-                   [orchestra "2018.12.06-2"]]
+                   [orchestra "2019.02.06-1"]]
     :injections [(require 'tortilla.specs) ;; loads all instrumented fns
                  (require 'orchestra.spec.test)
                  (orchestra.spec.test/instrument)]}
@@ -36,4 +37,7 @@
    :kaocha
    {:dependencies [[lambdaisland/kaocha "0.0-554"]
                    [lambdaisland/kaocha-cloverage "0.0-41"]]
-    :java-source-paths ["test/java"]}})
+    :java-source-paths ["test/java"]}
+
+   :clj-kondo
+   {:dependencies [[clj-kondo "2019.11.23"]]}})

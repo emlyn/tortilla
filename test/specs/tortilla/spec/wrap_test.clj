@@ -1,8 +1,7 @@
 (ns tortilla.spec.wrap-test
   (:require [tortilla.wrap :as w]
             [clojure.spec.alpha :as s]
-            [clojure.core.specs.alpha :as cs])
-  (:import [tortilla TestClass]))
+            [clojure.core.specs.alpha :as cs]))
 
 (s/def ::class
   (s/with-gen (s/and simple-symbol?
