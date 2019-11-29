@@ -22,15 +22,24 @@
 (defn method-varargs? [^Method method]
   (.isVarArgs method))
 
-(defn parameter-types [^Class klazz ^Method method]
-  (if (method-static? method)
-    (seq (.getParameterTypes method))
-    (cons klazz (seq (.getParameterTypes method)))))
-
+;; Minimum number of parameters a method accepts. It could take more if it has varargs
 (defn parameter-count [^Method method]
-  (if (method-static? method)
-    (.getParameterCount method)
-    (inc (.getParameterCount method))))
+  (cond-> (.getParameterCount method)
+    (not (method-static? method)) inc
+    (method-varargs? method)      dec))
+
+(defn vararg-type [^Method method]
+  (when (method-varargs? method)
+    (.getComponentType ^Class (last (.getParameterTypes method)))))
+
+;; Possibly infinite (if method has varargs) list of parameter types accepted by method
+(defn parameter-types [^Class klazz ^Method method]
+  (concat (when-not (method-static? method)
+            [klazz])
+          (cond-> (.getParameterTypes method)
+            (method-varargs? method) butlast)
+          (when (method-varargs? method)
+            (repeat (vararg-type method)))))
 
 (defn method-name [^Method method]
   (.getName method))
@@ -44,13 +53,6 @@
       (str/replace #"(.)([A-Z][a-z]+)" "$1-$2")
       (str/replace #"([a-z0-9])([A-Z])" "$1-$2")
       (str/lower-case)))
-
-(defn class->name [^Class class]
-  (->
-   (if (.isArray class)
-     (str (.getName (.getComponentType class)) "-array")
-     (.getName class))
-   (str/replace "." "-")))
 
 (defn primitive-class [sym]
   ('{byte java.lang.Byte/TYPE
@@ -115,8 +117,11 @@
     (symbol (str klazz) (method-name method))
     (symbol (str "." (method-name method)))))
 
-(defn wrapper-multi-tail [klazz methods]
-  (let [arg-vec (take (parameter-count (first methods)) (repeatedly gensym))
+;; Generate form for one arity of a method
+(defn arity-wrapper-form [arity klazz uniadics variadics]
+  (let [more-arg (gensym "more_")
+        arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
+        methods (concat uniadics variadics)
         ret     (if (apply = (map return-type methods))
                   (return-type (first methods))
                   java.lang.Object)]
@@ -134,28 +139,87 @@
                                (parameter-types (resolve klazz) method))]
                  (~(method-invocation klazz method)
                   ~@arg-vec))])
+           uniadics)
+        ~@(mapcat
+           (fn [method]
+             `[(and ~@(map (fn [sym ^Class klz]
+                             `(instance? ~(ensure-boxed (class-name klz)) ~sym))
+                           arg-vec
+                           (parameter-types (resolve klazz) method)))
+               (let [~@(mapcat (fn [sym ^Class klz]
+                                 [sym (tagged-local sym klz)])
+                               (take (parameter-count method) arg-vec)
+                               (parameter-types (resolve klazz) method))
+                     ~more-arg (into-array ~(vararg-type method)
+                                           ~(subvec arg-vec (parameter-count method)))
+                     ~more-arg ~(tagged-local more-arg (array-class (vararg-type method)))]
+                 (~(method-invocation klazz method)
+                  ~@(if (method-varargs? method)
+                      (concat (take (parameter-count method) arg-vec)
+                              [more-arg])
+                      arg-vec)))])
+           variadics)))))
+
+;; Generate form for the highest/variadic arity of a method
+(defn variadic-wrapper-form [min-arity klazz methods]
+  (let [more-arg (gensym "more_")
+        arg-vec (into (mapv #(gensym (str "p" % "_")) (range min-arity))
+                      ['& more-arg])
+        ret (if (apply = (map return-type methods))
+              (return-type (first methods))
+              java.lang.Object)]
+    `(~(tagged `[~@arg-vec] ret)
+      (cond
+        ~@(mapcat
+           (fn [method]
+             `[(and ~@(map (fn [sym ^Class klz]
+                             `(instance? ~(ensure-boxed (class-name klz)) ~sym))
+                           (take min-arity arg-vec)
+                           (parameter-types (resolve klazz) method))
+                    (every? (partial instance? ~(vararg-type method)) ~more-arg))
+               (let [~@(mapcat (fn [sym ^Class klz]
+                                 [sym (tagged-local sym klz)])
+                               (take (parameter-count method) arg-vec)
+                               (parameter-types (resolve klazz) method))
+                     ~more-arg (into-array ~(vararg-type method)
+                                           (into ~(subvec arg-vec
+                                                          (parameter-count method)
+                                                          min-arity)
+                                                 ~more-arg))
+                     ~more-arg ~(tagged-local more-arg (array-class (vararg-type method)))]
+                 (~(method-invocation klazz method)
+                  ~@(take (parameter-count method) arg-vec)
+                  ~more-arg))])
            methods)))))
 
-(defn wrapper-tail [klazz method]
-  (let [ret     (return-type method)
-        par     (parameter-types (resolve klazz) method)
-        arg-vec (into []
-                      (map #(tagged (gensym (class->name %)) %))
-                      par)]
-    `(~(tagged arg-vec ret)
-      (~(method-invocation klazz method)
-       ~@(map #(vary-meta % dissoc :tag) arg-vec)))))
-
+;; Generate defn form for all arities of a named method
 (defn method-wrapper-form [fname klazz methods]
   (let [arities (group-by parameter-count methods)]
     `(defn ~fname
-       {:arglists '~(map (comp (partial into [])
-                               (partial parameter-types (resolve klazz))) methods)}
-       ~@(map (fn [[_ meths]]
-                (if (= 1 (count meths))
-                  (wrapper-tail klazz (first meths))
-                  (wrapper-multi-tail klazz meths)))
-              arities))))
+       {:arglists '~(map (fn [method]
+                           (cond-> (vec (take (parameter-count method)
+                                              (parameter-types (resolve klazz) method)))
+                             (method-varargs? method) (conj '& [(vararg-type method)])))
+                         methods)}
+       ~@(loop [[[arity meths] & more] (sort arities)
+                variadics []
+                results []
+                last-arity -1]
+           (if (nil? arity) ;; no more methods, generate variadic form if necessary
+             (if (seq variadics)
+               (conj results (variadic-wrapper-form last-arity klazz variadics))
+               results)
+             (if (and (seq variadics) (> arity (inc last-arity)))
+               (recur [[arity meths] more]
+                      variadics
+                      (conj results (arity-wrapper-form (inc last-arity) klazz [] variadics))
+                      (inc last-arity))
+               (let [{vararg true fixarg false} (group-by method-varargs? meths)
+                     variadics (into variadics vararg)]
+                 (recur more
+                        variadics
+                        (conj results (arity-wrapper-form arity klazz fixarg variadics))
+                        (long arity)))))))))
 
 (defmacro defwrapper [klazz & [{:keys [prefix]}]]
   (let [methods (->> klazz

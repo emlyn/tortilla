@@ -12,6 +12,5 @@
   (let [tc (TestClass.)]
     (is (= "foo1_42"
            (foo tc 42)))
-    ;; TODO: Handle varargs properly
     (is (= "foo3_abc_def"
-           (foo tc (into-array ["abc" "def"]))))))
+           (foo tc "abc" "def")))))
