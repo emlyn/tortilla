@@ -31,7 +31,7 @@
 (s/fdef w/parameter-types
   :args (s/cat :class ::class
                :method ::method)
-  :ret  (s/nilable (s/coll-of ::class)))
+  :ret  (s/nilable (s/every ::class)))
 
 (s/fdef w/parameter-count
   :args (s/cat :method ::method)
