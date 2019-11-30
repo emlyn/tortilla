@@ -32,12 +32,12 @@
                    [orchestra "2019.02.06-1"]]
     :injections [(require 'tortilla.specs) ;; loads all instrumented fns
                  (require 'orchestra.spec.test)
-                 (orchestra.spec.test/instrument)]}
+                 (orchestra.spec.test/instrument)]
+    :java-source-paths ["test/java"]}
 
    :kaocha
    {:dependencies [[lambdaisland/kaocha "0.0-554"]
-                   [lambdaisland/kaocha-cloverage "0.0-41"]]
-    :java-source-paths ["test/java"]}
+                   [lambdaisland/kaocha-cloverage "0.0-41"]]}
 
    :clj-kondo
    {:dependencies [[clj-kondo "2019.11.23"]]}})
