@@ -6,7 +6,7 @@
 (s/def ::class
   (s/with-gen (s/and simple-symbol?
                      #(instance? Class (resolve %)))
-    #(s/gen #{'TestClass 'Object 'Long 'String 'Boolean 'System 'Thread 'Exception 'Class
+    #(s/gen #{'tortilla.TestClass 'Object 'Long 'String 'Boolean 'System 'Thread 'Exception 'Class
               'java.net.URI 'java.io.File 'java.nio.Buffer 'java.math.BigDecimal
               'java.util.ArrayList 'java.util.UUID})))
 
