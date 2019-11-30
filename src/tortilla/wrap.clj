@@ -110,6 +110,11 @@
       :else
       (vary-meta value assoc :tag tag))))
 
+(defn method-invocation [klazz method]
+  (if (method-static? method)
+    (symbol (str klazz) (method-name method))
+    (symbol (str "." (method-name method)))))
+
 (defn wrapper-multi-tail [klazz methods]
   (let [arg-vec (take (parameter-count (first methods)) (repeatedly gensym))
         ret     (if (apply = (map return-type methods))
@@ -127,23 +132,19 @@
                                  [sym (tagged-local sym klz)])
                                arg-vec
                                (parameter-types (resolve klazz) method))]
-                 (~(if (method-static? method)
-                     (symbol (str klazz) (method-name method))
-                     (symbol (str "." (method-name method))))
+                 (~(method-invocation klazz method)
                   ~@arg-vec))])
            methods)))))
 
 (defn wrapper-tail [klazz method]
-  (let [nam     (method-name method)
-        ret     (return-type method)
+  (let [ret     (return-type method)
         par     (parameter-types (resolve klazz) method)
         arg-vec (into []
                       (map #(tagged (gensym (class->name %)) %))
                       par)]
     `(~(tagged arg-vec ret)
-      (~(if (method-static? method)
-          (symbol (str klazz) nam)
-          (symbol (str "." nam))) ~@(map #(vary-meta % dissoc :tag) arg-vec)))))
+      (~(method-invocation klazz method)
+       ~@(map #(vary-meta % dissoc :tag) arg-vec)))))
 
 (defn method-wrapper-form [fname klazz methods]
   (let [arities (group-by parameter-count methods)]
