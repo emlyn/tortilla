@@ -13,8 +13,6 @@
 
   :test-paths ["test/clj"]
 
-  :main tortilla.core
-
   :repl-options {:init-ns tortilla.wrap-test}
 
   :deploy-branches ["master"]
@@ -28,7 +26,8 @@
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
 
    :dev
-   {:dependencies [[org.clojure/test.check "0.10.0"]
+   {:main tortilla.core
+    :dependencies [[org.clojure/test.check "0.10.0"]
                    [orchestra "2019.02.06-1"]]
     :injections [(require 'tortilla.specs) ;; loads all instrumented fns
                  (require 'orchestra.spec.test)

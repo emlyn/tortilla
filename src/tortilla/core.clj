@@ -1,6 +1,7 @@
 (ns tortilla.core
   (:require [tortilla.wrap :refer [defwrapper]]
-            [clojure.pprint :refer [pprint]]))
+            [clojure.pprint :refer [pprint]])
+  (:gen-class))
 
 (defn -main
   [& classes]
