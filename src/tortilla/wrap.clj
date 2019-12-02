@@ -158,7 +158,11 @@
                       (concat (take (parameter-count method) arg-vec)
                               [more-arg])
                       arg-vec)))])
-           variadics)))))
+           variadics)
+        :else (throw (IllegalArgumentException.
+                      (str ~(str "Unrecognised types for " klazz \. (method-name (first methods)) ": ")
+                           ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (butlast arg-vec))
+                           (.getName ^Class (type ~(last arg-vec))))))))))
 
 ;; Generate form for the highest/variadic arity of a method
 (defn variadic-wrapper-form [min-arity klazz methods]
@@ -190,7 +194,11 @@
                  (~(method-invocation klazz method)
                   ~@(take (parameter-count method) arg-vec)
                   ~more-arg))])
-           methods)))))
+           methods)
+        :else (throw (IllegalArgumentException.
+                      (str ~(str "Unrecognised types for " klazz \. (method-name (first methods)) ": ")
+                           ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (take min-arity arg-vec))
+                           (str/join ", " (map (fn [p#] (.getName ^Class (type p#))) ~more-arg)))))))))
 
 ;; Generate defn form for all arities of a named method
 (defn method-wrapper-form [fname klazz methods]
