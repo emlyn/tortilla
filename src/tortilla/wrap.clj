@@ -226,7 +226,7 @@
                         (conj results (arity-wrapper-form arity klazz fixarg variadics))
                         (long arity)))))))))
 
-(defmacro defwrapper [klazz & [{:keys [prefix]}]]
+(defmacro defwrapper [klazz {:keys [prefix]}]
   (let [klazz (resolve klazz)
         methods (->> klazz
                      class-methods

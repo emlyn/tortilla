@@ -22,4 +22,4 @@
 (defn defwrapper
   "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"
   [cls]
-  (macroexpand-1 `(w/defwrapper ~cls)))
+  (macroexpand-1 `(w/defwrapper ~cls {})))

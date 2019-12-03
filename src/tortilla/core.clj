@@ -9,5 +9,5 @@
     (println "\n====" cls "====")
     (if (resolve (symbol cls))
       (binding [*print-meta* true]
-        (pprint (macroexpand-1 `(defwrapper ~(symbol cls)))))
+        (pprint (macroexpand-1 `(defwrapper ~(symbol cls) {}))))
       (println "Error loading class"))))
