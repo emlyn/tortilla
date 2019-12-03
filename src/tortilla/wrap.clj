@@ -1,51 +1,93 @@
 (ns tortilla.wrap
   (:require [clojure.string :as str])
-  (:import [java.lang.reflect Method Modifier]))
+  (:import [java.lang.reflect Executable Constructor Method Modifier]))
 
 (set! *warn-on-reflection* true)
 
-(defn class-methods [^Class class]
-  (seq (.getMethods class)))
+(defn class-methods [^Class klazz]
+  (seq (.getMethods klazz)))
 
-(defn constructors [^Class klazz]
-  (.getConstructors klazz))
+(defn class-constructors [^Class klazz]
+  (seq (.getConstructors klazz)))
 
-(defn return-type [^Method method]
-  (.getReturnType method))
-
-(defn method-static? [^Method method]
-  (Modifier/isStatic (.getModifiers method)))
-
-(defn method-varargs? [^Method method]
+(defn method-varargs? [^Executable method]
   (.isVarArgs method))
 
-(defn method-class [^Method method]
+(defn method-static? [^Executable method]
+  (Modifier/isStatic (.getModifiers method)))
+
+(defn method-class ^Class [^Executable method]
   (.getDeclaringClass method))
 
-;; Minimum number of parameters a method accepts. It could take more if it has varargs
-(defn parameter-count [^Method method]
-  (cond-> (.getParameterCount method)
-    (not (method-static? method)) inc
-    (method-varargs? method)      dec))
-
-(defn vararg-type [^Method method]
+(defn vararg-type [^Executable method]
   (when (method-varargs? method)
     (.getComponentType ^Class (last (.getParameterTypes method)))))
 
-;; Possibly infinite (if method has varargs) list of parameter types accepted by method
-(defn parameter-types [^Method method]
-  (concat (when-not (method-static? method)
-            [(method-class method)])
-          (cond-> (.getParameterTypes method)
-            (method-varargs? method) butlast)
-          (when (method-varargs? method)
-            (repeat (vararg-type method)))))
-
-(defn method-name [^Method method]
-  (.getName method))
-
 (defn class-name [^Class klazz]
   (symbol (.getName klazz)))
+
+(defprotocol MethodInfo
+  (method-name* [_])
+  (method-invocation* [_])
+  ;; Minimum number of parameters a method accepts. It could take more if it has varargs
+  (parameter-count* [_])
+  ;; Possibly infinite (if method has varargs) list of parameter types accepted by method
+  (parameter-types* [_])
+  (return-type* [_]))
+
+;; Wrap protocol methods in functions so we get spec instrumentation
+(defn method-name [m]
+  (method-name* m))
+
+(defn method-invocation [m]
+  (method-invocation* m))
+
+(defn parameter-count [m]
+  (parameter-count* m))
+
+(defn parameter-types [m]
+  (parameter-types* m))
+
+(defn return-type [m]
+  (return-type* m))
+
+(extend-protocol MethodInfo
+  Method
+  (method-name* [^Method m]
+    (.getName m))
+  (method-invocation* [^Method m]
+    (if (method-static? m)
+      (symbol (-> m method-class class-name str) (method-name m))
+      (symbol (str "." (method-name m)))))
+  (parameter-count* [^Method m]
+    (cond-> (.getParameterCount m)
+      (not (method-static? m)) inc
+      (method-varargs? m)      dec))
+  (parameter-types* [^Method m]
+    (concat (when-not (method-static? m)
+              [(method-class m)])
+            (cond-> (.getParameterTypes m)
+              (method-varargs? m) butlast)
+            (when (method-varargs? m)
+              (repeat (vararg-type m)))))
+  (return-type* [^Method m]
+    (.getReturnType m))
+
+  Constructor
+  (method-name* [^Constructor c]
+    (-> c method-class .getSimpleName))
+  (method-invocation* [^Constructor c]
+    (-> c method-class class-name (str ".") symbol))
+  (parameter-count* [^Constructor c]
+    (cond-> (.getParameterCount c)
+      (method-varargs? c) dec))
+  (parameter-types* [^Constructor c]
+    (concat (cond-> (.getParameterTypes c)
+              (method-varargs? c) butlast)
+            (when (method-varargs? c)
+              (repeat (vararg-type c)))))
+  (return-type* [^Constructor c]
+    (.getDeclaringClass c)))
 
 (defn camel->kebab
   [string]
@@ -111,11 +153,6 @@
 
       :else
       (vary-meta value assoc :tag tag))))
-
-(defn method-invocation [method]
-  (if (method-static? method)
-    (symbol (-> method method-class class-name str) (method-name method))
-    (symbol (str "." (method-name method)))))
 
 ;; Generate form for one arity of a method
 (defn arity-wrapper-form [arity uniadics variadics]
@@ -236,7 +273,8 @@
 (defmacro defwrapper [klazz {:keys [prefix]}]
   (let [methods (->> klazz
                      resolve
-                     class-methods
+                     ((juxt class-constructors class-methods))
+                     (apply concat)
                      (remove (set (class-methods Object)))
                      (group-by method-name))]
     `(do

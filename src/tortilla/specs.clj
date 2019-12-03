@@ -6,50 +6,58 @@
   #(instance? Class %))
 
 (s/def ::method
-  #(instance? java.lang.reflect.Method %))
+  #(instance? java.lang.reflect.Executable %))
 
 (s/fdef w/class-methods
   :args (s/cat :class ::class)
-  :ret  (s/coll-of ::method))
+  :ret  (s/nilable (s/coll-of #(instance? java.lang.reflect.Method %))))
 
-(s/fdef w/return-type
-  :args (s/cat :method ::method)
-  :ret  ::class)
-
-(s/fdef w/method-static?
-  :args (s/cat :method ::method)
-  :ret  boolean?)
-
-(s/fdef w/method-public?
-  :args (s/cat :method ::method)
-  :ret  boolean?)
+(s/fdef w/class-constructors
+  :args (s/cat :class ::class)
+  :ret  (s/nilable (s/coll-of #(instance? java.lang.reflect.Constructor %))))
 
 (s/fdef w/method-varargs?
   :args (s/cat :method ::method)
   :ret  boolean?)
 
-(s/fdef w/parameter-types
+(s/fdef w/method-static?
   :args (s/cat :method ::method)
-  :ret  (s/nilable (s/every ::class)))
+  :ret  boolean?)
 
-(s/fdef w/parameter-count
+(s/fdef w/method-class
   :args (s/cat :method ::method)
-  :ret  integer?)
+  :ret  ::class)
 
-(s/fdef w/method-name
+(s/fdef w/vararg-type
   :args (s/cat :method ::method)
-  :ret  string?)
+  :ret  ::class)
 
 (s/fdef w/class-name
   :args (s/cat :class ::class)
   :ret  simple-symbol?)
 
-(s/fdef camel->kebab
-  :args (s/cat :string string?)
+(s/fdef w/method-name
+  :args (s/cat :method ::method)
   :ret  string?)
 
-(s/fdef w/class->name
-  :args (s/cat :class ::class)
+(s/fdef w/method-invocation
+  :args (s/cat :method ::method)
+  :ret  symbol?)
+
+(s/fdef w/parameter-count
+  :args (s/cat :method ::method)
+  :ret  integer?)
+
+(s/fdef w/parameter-types
+  :args (s/cat :method ::method)
+  :ret  (s/nilable (s/every ::class)))
+
+(s/fdef w/return-type
+  :args (s/cat :method ::method)
+  :ret  ::class)
+
+(s/fdef camel->kebab
+  :args (s/cat :string string?)
   :ret  string?)
 
 (s/fdef w/primitive-class
