@@ -15,11 +15,11 @@
     (is (= "foo3_abc_def"
            (foo tc "abc" "def")))
     (is (thrown-with-msg? IllegalArgumentException
-                          #"Unrecognised types for TestClass.foo: clojure.lang.Keyword"
+                          #"Unrecognised types for tortilla.TestClass.foo: clojure.lang.Keyword"
                           (foo :x)))
     (is (thrown-with-msg? IllegalArgumentException
-                          #"Unrecognised types for TestClass.foo: tortilla.TestClass, java.lang.Long, java.lang.String"
+                          #"Unrecognised types for tortilla.TestClass.foo: tortilla.TestClass, java.lang.Long, java.lang.String"
                  (foo tc 123 "456")))
     (is (thrown-with-msg? IllegalArgumentException
-                          #"Unrecognised types for TestClass.foo: tortilla.TestClass, java.lang.String, java.lang.String, java.lang.String, java.lang.Long"
+                          #"Unrecognised types for tortilla.TestClass.foo: tortilla.TestClass, java.lang.String, java.lang.String, java.lang.String, java.lang.Long"
                  (foo tc "1" "2" "3" 4)))))

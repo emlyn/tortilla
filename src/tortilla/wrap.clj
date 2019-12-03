@@ -114,7 +114,7 @@
 
 (defn method-invocation [klazz method]
   (if (method-static? method)
-    (symbol (str klazz) (method-name method))
+    (symbol (str (class-name klazz)) (method-name method))
     (symbol (str "." (method-name method)))))
 
 ;; Generate form for one arity of a method
@@ -132,11 +132,11 @@
              `[(and ~@(map (fn [sym ^Class klz]
                              `(instance? ~(ensure-boxed (class-name klz)) ~sym))
                            arg-vec
-                           (parameter-types (resolve klazz) method)))
+                           (parameter-types klazz method)))
                (let [~@(mapcat (fn [sym ^Class klz]
                                  [sym (tagged-local sym klz)])
                                arg-vec
-                               (parameter-types (resolve klazz) method))]
+                               (parameter-types klazz method))]
                  (~(method-invocation klazz method)
                   ~@arg-vec))])
            uniadics)
@@ -145,11 +145,11 @@
              `[(and ~@(map (fn [sym ^Class klz]
                              `(instance? ~(ensure-boxed (class-name klz)) ~sym))
                            arg-vec
-                           (parameter-types (resolve klazz) method)))
+                           (parameter-types klazz method)))
                (let [~@(mapcat (fn [sym ^Class klz]
                                  [sym (tagged-local sym klz)])
                                (take (parameter-count method) arg-vec)
-                               (parameter-types (resolve klazz) method))
+                               (parameter-types klazz method))
                      ~more-arg (into-array ~(vararg-type method)
                                            ~(subvec arg-vec (parameter-count method)))
                      ~more-arg ~(tagged-local more-arg (array-class (vararg-type method)))]
@@ -160,7 +160,7 @@
                       arg-vec)))])
            variadics)
         :else (throw (IllegalArgumentException.
-                      (str ~(str "Unrecognised types for " klazz \. (method-name (first methods)) ": ")
+                      (str ~(str "Unrecognised types for " (class-name klazz) \. (method-name (first methods)) ": ")
                            ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (butlast arg-vec))
                            (.getName ^Class (type ~(last arg-vec))))))))))
 
@@ -179,12 +179,12 @@
              `[(and ~@(map (fn [sym ^Class klz]
                              `(instance? ~(ensure-boxed (class-name klz)) ~sym))
                            (take min-arity arg-vec)
-                           (parameter-types (resolve klazz) method))
+                           (parameter-types klazz method))
                     (every? (partial instance? ~(vararg-type method)) ~more-arg))
                (let [~@(mapcat (fn [sym ^Class klz]
                                  [sym (tagged-local sym klz)])
                                (take (parameter-count method) arg-vec)
-                               (parameter-types (resolve klazz) method))
+                               (parameter-types klazz method))
                      ~more-arg (into-array ~(vararg-type method)
                                            (into ~(subvec arg-vec
                                                           (parameter-count method)
@@ -196,7 +196,7 @@
                   ~more-arg))])
            methods)
         :else (throw (IllegalArgumentException.
-                      (str ~(str "Unrecognised types for " klazz \. (method-name (first methods)) ": ")
+                      (str ~(str "Unrecognised types for " (class-name klazz) \. (method-name (first methods)) ": ")
                            ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (take min-arity arg-vec))
                            (str/join ", " (map (fn [p#] (.getName ^Class (type p#))) ~more-arg)))))))))
 
@@ -206,7 +206,7 @@
     `(defn ~fname
        {:arglists '~(map (fn [method]
                            (cond-> (vec (take (parameter-count method)
-                                              (parameter-types (resolve klazz) method)))
+                                              (parameter-types klazz method)))
                              (method-varargs? method) (conj '& [(vararg-type method)])))
                          methods)}
        ~@(loop [[[arity meths] & more] (sort arities)
@@ -230,8 +230,8 @@
                         (long arity)))))))))
 
 (defmacro defwrapper [klazz & [{:keys [prefix]}]]
-  (let [methods (->> klazz
-                     resolve
+  (let [klazz (resolve klazz)
+        methods (->> klazz
                      class-methods
                      (filter method-public?)
                      (remove (set (class-methods Object)))
