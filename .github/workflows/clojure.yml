@@ -22,7 +22,7 @@ jobs:
       run: lein with-profile +clj-kondo,+kaocha deps
 
     - name: Run lint check
-      run: lein clj-kondo --lint src:test
+      run: lein lint
 
     - name: Run tests
       run: lein kaocha

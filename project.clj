@@ -19,7 +19,8 @@
 
   :aliases
   {"kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
-   "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]}
+   "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]
+   "lint" ["clj-kondo" "--lint" "src:test"]}
 
   :profiles
   {:provided
