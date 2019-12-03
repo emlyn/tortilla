@@ -8,16 +8,13 @@
   (seq (.getMethods class)))
 
 (defn constructors [^Class klazz]
-  (.getDeclaredConstructors klazz))
+  (.getConstructors klazz))
 
 (defn return-type [^Method method]
   (.getReturnType method))
 
 (defn method-static? [^Method method]
   (Modifier/isStatic (.getModifiers method)))
-
-(defn method-public? [^Method method]
-  (Modifier/isPublic (.getModifiers method)))
 
 (defn method-varargs? [^Method method]
   (.isVarArgs method))
@@ -233,7 +230,6 @@
   (let [klazz (resolve klazz)
         methods (->> klazz
                      class-methods
-                     (filter method-public?)
                      (remove (set (class-methods Object)))
                      (group-by method-name))]
     `(do

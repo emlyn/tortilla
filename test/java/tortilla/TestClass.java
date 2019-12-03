@@ -14,4 +14,8 @@ public class TestClass {
     public String foo(String... args) {
         return "foo3_" + String.join("_", args);
     }
+
+    String foo(String s, long i) {
+        throw new RuntimeException("This shouldn't be called, it isn't public");
+    }
 }
