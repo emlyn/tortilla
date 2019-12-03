@@ -29,8 +29,7 @@
   :ret  boolean?)
 
 (s/fdef w/parameter-types
-  :args (s/cat :class ::class
-               :method ::method)
+  :args (s/cat :method ::method)
   :ret  (s/nilable (s/every ::class)))
 
 (s/fdef w/parameter-count
