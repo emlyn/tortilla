@@ -3,12 +3,17 @@
             [tortilla.wrap :as w])
   (:import [tortilla TestClass]))
 
+;; These will be defined later by defwrapper, declare them now to keep the linter happy:
 (declare foo)
+(declare bar)
 
 (deftest defwrapper-test
   (is (w/defwrapper TestClass {}))
   (is (= "foo2_123_456"
          (foo 123 456)))
+  (is (= 3
+         (bar (into-array Long [2 3 4])
+              (long-array [3 2 1]))))
   (let [tc (TestClass.)]
     (is (= "foo1_42"
            (foo tc 42)))

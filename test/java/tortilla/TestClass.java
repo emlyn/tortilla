@@ -1,5 +1,7 @@
 package tortilla;
 
+import java.util.Arrays;
+
 public class TestClass {
     public TestClass() {}
 
@@ -13,6 +15,11 @@ public class TestClass {
 
     public String foo(String... args) {
         return "foo3_" + String.join("_", args);
+    }
+
+    public static long bar(Long[] i, long[] j) {
+        return Arrays.stream(i).mapToLong(Long::longValue).sum()
+            - Arrays.stream(j).sum();
     }
 
     String foo(String s, long i) {
