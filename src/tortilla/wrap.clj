@@ -155,7 +155,7 @@
       (vary-meta value assoc :tag tag))))
 
 ;; Generate form for one arity of a method
-(defn arity-wrapper-form [arity uniadics variadics]
+(defn arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [more-arg (gensym "more_")
         arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
         methods (concat uniadics variadics)
@@ -167,11 +167,14 @@
         ~@(mapcat
            (fn [method]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz)) ~sym))
+                             `(instance? ~(ensure-boxed (class-name klz))
+                                         ~(if coerce
+                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            sym)))
                            arg-vec
                            (parameter-types method)))
                (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local sym klz)])
+                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
                                arg-vec
                                (parameter-types method))]
                  (~(method-invocation method)
@@ -180,11 +183,14 @@
         ~@(mapcat
            (fn [method]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz)) ~sym))
+                             `(instance? ~(ensure-boxed (class-name klz))
+                                         ~(if coerce
+                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            sym)))
                            arg-vec
                            (parameter-types method)))
                (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local sym klz)])
+                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
                                (take (parameter-count method) arg-vec)
                                (parameter-types method))
                      ~more-arg (into-array ~(vararg-type method)
@@ -204,7 +210,7 @@
                            (.getName ^Class (type ~(last arg-vec))))))))))
 
 ;; Generate form for the highest/variadic arity of a method
-(defn variadic-wrapper-form [min-arity methods]
+(defn variadic-wrapper-form [min-arity methods {:keys [coerce]}]
   (let [more-arg (gensym "more_")
         arg-vec (into (mapv #(gensym (str "p" % "_")) (range min-arity))
                       ['& more-arg])
@@ -216,12 +222,15 @@
         ~@(mapcat
            (fn [method]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz)) ~sym))
+                             `(instance? ~(ensure-boxed (class-name klz))
+                                         ~(if coerce
+                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            sym)))
                            (take min-arity arg-vec)
                            (parameter-types method))
                     (every? (partial instance? ~(vararg-type method)) ~more-arg))
                (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local sym klz)])
+                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
                                (take (parameter-count method) arg-vec)
                                (parameter-types method))
                      ~more-arg (into-array ~(vararg-type method)
@@ -242,7 +251,7 @@
                            (str/join ", " (map (fn [p#] (.getName ^Class (type p#))) ~more-arg)))))))))
 
 ;; Generate defn form for all arities of a named method
-(defn method-wrapper-form [fname methods]
+(defn method-wrapper-form [fname methods opts]
   (let [arities (group-by parameter-count methods)]
     `(defn ~fname
        {:arglists '~(map (fn [method]
@@ -256,21 +265,21 @@
                 last-arity -1]
            (if (nil? arity) ;; no more methods, generate variadic form if necessary
              (if (seq variadics)
-               (conj results (variadic-wrapper-form last-arity variadics))
+               (conj results (variadic-wrapper-form last-arity variadics opts))
                results)
              (if (and (seq variadics) (> arity (inc last-arity)))
                (recur [[arity meths] more]
                       variadics
-                      (conj results (arity-wrapper-form (inc last-arity) [] variadics))
+                      (conj results (arity-wrapper-form (inc last-arity) [] variadics opts))
                       (inc last-arity))
                (let [{vararg true fixarg false} (group-by method-varargs? meths)
                      variadics (into variadics vararg)]
                  (recur more
                         variadics
-                        (conj results (arity-wrapper-form arity fixarg variadics))
+                        (conj results (arity-wrapper-form arity fixarg variadics opts))
                         (long arity)))))))))
 
-(defmacro defwrapper [klazz {:keys [prefix]}]
+(defmacro defwrapper [klazz {:keys [prefix] :as opts}]
   (let [methods (->> klazz
                      resolve
                      ((juxt class-constructors class-methods))
@@ -280,4 +289,4 @@
     `(do
        ~@(for [[mname meths] methods
                :let [fname (symbol (str prefix (camel->kebab mname)))]]
-           (method-wrapper-form fname meths)))))
+           (method-wrapper-form fname meths opts)))))
