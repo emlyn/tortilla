@@ -37,12 +37,12 @@ public class TestClass {
         return Integer.toHexString(i);
     }
 
-    // two overloads with overlapping types
+    // two overloads with overlapping types, one more specific
     public static String baz(String x) {
         return "baz1_" + x;
     }
 
-    // less specific version (must appear second, until we fix priority handling)
+    // ...and one less specific
     public static String baz(Object x) {
         return "baz2_" + x;
     }
