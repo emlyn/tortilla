@@ -7,6 +7,7 @@
 (declare foo)
 (declare bar)
 (declare baz)
+(declare qux)
 (declare hex)
 (declare hexy)
 (declare flibble)
@@ -34,6 +35,11 @@
     (is (= "7b"
            (hexy (int 123))
            (hexy 123))))
+
+  (testing "Can coerce to int in varargs"
+    (is (= 10 (qux 10)))
+    (is (= 5  (qux 10 5)))
+    (is (= 0  (qux 10 (int 5) 5))))
 
   (testing "Checking array arguments"
     (is (= 3

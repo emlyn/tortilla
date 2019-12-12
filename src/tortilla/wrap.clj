@@ -156,8 +156,7 @@
 
 ;; Generate form for one arity of a method
 (defn arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
-  (let [more-arg (gensym "more_")
-        arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
+  (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
         methods (concat uniadics variadics)
         ret     (if (apply = (map return-type methods))
                   (return-type (first methods))
@@ -173,12 +172,11 @@
                                             sym)))
                            arg-vec
                            (parameter-types method)))
-               (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
-                               arg-vec
-                               (parameter-types method))]
-                 (~(method-invocation method)
-                  ~@arg-vec))])
+               (~(method-invocation method)
+                ~@(map (fn [sym ^Class klz]
+                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz))
+                       arg-vec
+                       (parameter-types method)))])
            uniadics)
         ~@(mapcat
            (fn [method]
@@ -189,18 +187,18 @@
                                             sym)))
                            arg-vec
                            (parameter-types method)))
-               (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
-                               (take (parameter-count method) arg-vec)
-                               (parameter-types method))
-                     ~more-arg (into-array ~(vararg-type method)
-                                           ~(subvec arg-vec (parameter-count method)))
-                     ~more-arg ~(tagged-local more-arg (array-class (vararg-type method)))]
-                 (~(method-invocation method)
-                  ~@(if (method-varargs? method)
-                      (concat (take (parameter-count method) arg-vec)
-                              [more-arg])
-                      arg-vec)))])
+               (~(method-invocation method)
+                ~@(map (fn [sym ^Class klz]
+                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz))
+                       (take (parameter-count method) arg-vec)
+                       (parameter-types method))
+                ~(tagged-local `(into-array ~(vararg-type method)
+                                            ~(mapv (fn [sym]
+                                                     (if coerce
+                                                       `(~coerce ~sym ~(ensure-boxed (class-name (vararg-type method))))
+                                                       sym))
+                                                   (drop (parameter-count method) arg-vec)))
+                               (array-class (vararg-type method))))])
            variadics)
         :else (throw (IllegalArgumentException.
                       ^String
@@ -228,20 +226,32 @@
                                             sym)))
                            (take min-arity arg-vec)
                            (parameter-types method))
-                    (every? (partial instance? ~(vararg-type method)) ~more-arg))
-               (let [~@(mapcat (fn [sym ^Class klz]
-                                 [sym (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz)])
-                               (take (parameter-count method) arg-vec)
-                               (parameter-types method))
-                     ~more-arg (into-array ~(vararg-type method)
-                                           (into ~(subvec arg-vec
-                                                          (parameter-count method)
-                                                          min-arity)
-                                                 ~more-arg))
-                     ~more-arg ~(tagged-local more-arg (array-class (vararg-type method)))]
-                 (~(method-invocation method)
-                  ~@(take (parameter-count method) arg-vec)
-                  ~more-arg))])
+                    (every? (partial instance? ~(ensure-boxed (class-name (vararg-type method))))
+                            ~(if coerce
+                               `(map #(~coerce % ~(ensure-boxed (class-name (vararg-type method))))
+                                     ~more-arg)
+                               more-arg)))
+               (~(method-invocation method)
+                ~@(map (fn [sym ^Class klz]
+                         (tagged-local (if coerce
+                                         `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                         sym)
+                                       klz))
+                       (take (parameter-count method) arg-vec)
+                       (parameter-types method))
+                ~(tagged-local `(into-array ~(vararg-type method)
+                                            (into ~(mapv (fn [sym]
+                                                           (if coerce
+                                                             `(~coerce ~sym ~(ensure-boxed (class-name (vararg-type method))))
+                                                             sym))
+                                                         (subvec arg-vec
+                                                                 (parameter-count method)
+                                                                 min-arity))
+                                                  ~(if coerce
+                                                    `(map #(~coerce % ~(ensure-boxed (class-name (vararg-type method))))
+                                                          ~more-arg)
+                                                    more-arg)))
+                               (array-class (vararg-type method))))])
            methods)
         :else (throw (IllegalArgumentException.
                       ^String

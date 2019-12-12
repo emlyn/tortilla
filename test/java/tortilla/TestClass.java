@@ -47,6 +47,11 @@ public class TestClass {
         return "baz2_" + x;
     }
 
+    // for coercion in varargs
+    public static int qux(int i, int... j) {
+        return i - Arrays.stream(j).sum();
+    }
+
     // void return
     public static void flibble(Long i) {
         // do nothing
