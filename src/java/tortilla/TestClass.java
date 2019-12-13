@@ -34,7 +34,11 @@ public class TestClass {
 
     // for coercion to Integer
     public static String hexy(Integer i) {
-        return Integer.toHexString(i);
+        if (i == null) {
+            return "<null>";
+        } else {
+            return Integer.toHexString(i);
+        }
     }
 
     // two overloads with overlapping types, one more specific

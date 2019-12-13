@@ -1,6 +1,8 @@
-(ns tortilla.core
+(ns tortilla.main
   (:require [tortilla.wrap :refer [defwrapper]]
-            [clojure.pprint :refer [pprint]])
+            [tortilla.spec]
+            [orchestra.spec.test :as st]
+            [fipp.clojure :as fipp])
   (:gen-class))
 
 (defprotocol Coercer
@@ -18,10 +20,11 @@
 
 (defn -main
   [& classes]
+  (st/instrument)
   (doseq [cls classes]
     (println "\n====" cls "====")
     (if (resolve (symbol cls))
-      (binding [*print-meta* true]
-        (pprint (macroexpand-1 `(defwrapper ~(symbol cls)
-                                  {:coerce coerce}))))
+      (fipp/pprint (macroexpand-1 `(defwrapper ~(symbol cls) {:coerce coerce}))
+                   {:print-meta true
+                    :width 100})
       (println "Error loading class"))))

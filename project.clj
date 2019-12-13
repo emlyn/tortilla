@@ -11,33 +11,42 @@
 
   :dependencies []
 
-  :test-paths ["test/clj"]
+  :source-paths ["src/main"]
+  :test-paths ["src/test"]
 
   :repl-options {:init-ns tortilla.wrap-test}
 
   :deploy-branches ["master"]
 
   :aliases
-  {"kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
+  {"run" ["with-profile" "+cli" "run"]
+
    "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]
-   "lint" ["clj-kondo" "--lint" "src:test"]}
+   "lint" ["clj-kondo" "--lint" "src"]
+
+   "kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
+   "test" ["kaocha"]}
 
   :profiles
   {:provided
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
 
+   :cli
+   {:dependencies [[org.clojure/tools.cli "0.4.2"]
+                   [fipp "0.6.22"]]
+    :source-paths ["src/cli"]
+    :java-source-paths ["src/java"]
+    :main tortilla.main}
+
    :dev
-   {:main tortilla.core
-    :dependencies [[org.clojure/test.check "0.10.0"]
-                   [orchestra "2019.02.06-1"]]
-    :injections [(require 'tortilla.specs) ;; loads all instrumented fns
-                 (require 'orchestra.spec.test)
-                 (orchestra.spec.test/instrument)]
-    :java-source-paths ["test/java"]}
+   [:cli
+    {:main tortilla.core
+     :dependencies [[org.clojure/test.check "0.10.0"]
+                    [orchestra "2019.02.06-1"]]}]
+
+   :clj-kondo
+   {:dependencies [[clj-kondo "2019.11.23"]]}
 
    :kaocha
    {:dependencies [[lambdaisland/kaocha "0.0-554"]
-                   [lambdaisland/kaocha-cloverage "0.0-41"]]}
-
-   :clj-kondo
-   {:dependencies [[clj-kondo "2019.11.23"]]}})
+                   [lambdaisland/kaocha-cloverage "0.0-41"]]}})

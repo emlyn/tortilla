@@ -1,10 +1,11 @@
 #kaocha/v1
 {:tests [{:id           :unit
-          :test-paths   ["test/clj"]}
+          :source-paths ["src/main" "src/cli"]
+          :test-paths   ["src/test"]}
          {:id           :spec
           :type         :kaocha.type/spec.test.check
-          :source-paths ["src/clj" "test/specs"]
-          :test-paths   ["test/specs"]}]
+          :source-paths ["src/main" "src/cli"]
+          :test-paths   ["src/test"]}]
  :plugins [:kaocha.plugin/print-invocations
            :kaocha.plugin/cloverage]
  :cloverage/opts {:output "target/coverage"
