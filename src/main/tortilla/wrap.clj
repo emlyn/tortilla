@@ -290,7 +290,7 @@
                         (conj results (arity-wrapper-form arity fixarg variadics opts))
                         (long arity)))))))))
 
-(defmacro defwrapper [klazz {:keys [prefix] :as opts}]
+(defmacro defwrapper [klazz {:keys [prefix coerce] :as opts}]
   (let [methods (->> klazz
                      resolve
                      ((juxt class-constructors class-methods))
@@ -300,7 +300,9 @@
     `(do
        ~@(for [[mname meths] methods
                :let [fname (symbol (str prefix (camel->kebab mname)))]]
-           (method-wrapper-form fname meths opts)))))
+           (method-wrapper-form fname meths (assoc opts :coerce (if (symbol? coerce)
+                                                                  (resolve coerce)
+                                                                  coerce)))))))
 
 (defn- defwrapperfn
   "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"
