@@ -166,7 +166,7 @@
         ~@(mapcat
            (fn [method]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz))
+                             `(instance? ~(ensure-boxed (class-name klz)) ;; TODO: or nil
                                          ~(if coerce
                                             `(~coerce ~sym ~(ensure-boxed (class-name klz)))
                                             sym)))
@@ -198,6 +198,7 @@
                                                        `(~coerce ~sym ~(ensure-boxed (class-name (vararg-type method))))
                                                        sym))
                                                    (drop (parameter-count method) arg-vec)))
+
                                (array-class (vararg-type method))))])
            variadics)
         :else (throw (IllegalArgumentException.
@@ -300,3 +301,12 @@
        ~@(for [[mname meths] methods
                :let [fname (symbol (str prefix (camel->kebab mname)))]]
            (method-wrapper-form fname meths opts)))))
+
+(defn- defwrapperfn
+  "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"
+  [cls]
+  (macroexpand-1 `(defwrapper ~cls {})))
+
+(def just-for-testing
+  ;; prevent linter complaining about unused private var
+  [defwrapperfn])

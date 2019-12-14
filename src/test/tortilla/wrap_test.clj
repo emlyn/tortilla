@@ -36,6 +36,10 @@
            (hexy (int 123))
            (hexy 123))))
 
+  #_(testing "Can pass in null for object parameters"
+    (is (= "<null>"
+           (hexy nil))))
+
   (testing "Can coerce to int in varargs"
     (is (= 10 (qux 10)))
     (is (= 5  (qux 10 5)))
