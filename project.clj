@@ -33,7 +33,8 @@
 
    :cli
    {:dependencies [[org.clojure/tools.cli "0.4.2"]
-                   [fipp "0.6.22"]]
+                   [fipp "0.6.22"]
+                   [com.cemerick/pomegranate "0.4.0"]]
     :source-paths ["src/cli"]
     :java-source-paths ["src/java"]
     :main tortilla.main}

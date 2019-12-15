@@ -1,6 +1,7 @@
 (ns tortilla.main
   (:require [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
+            [cemerick.pomegranate :refer [add-dependencies]]
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
             [tortilla.wrap :refer [defwrapper]]
@@ -21,6 +22,14 @@
       Float   (float val)
       val)))
 
+(defn parse-coords
+  [coord-str]
+  (if (re-matches #"\[.*\]" coord-str)
+    (clojure.edn/read-string coord-str)
+    (let [parts (str/split coord-str #":")]
+      (vector (symbol (str/join "/" (butlast parts)))
+              (last parts)))))
+
 (def cli-options
   [["-m" "--[no-]metadata" "Print metadata"
     :default true]
@@ -33,7 +42,13 @@
 
    ["-w" "--width CHARS" "Output width in chars"
     :default 100
-    :parse-fn #(Integer/parseInt %)]
+    :parse-fn #(Integer/parseInt %)
+    :validate [pos? "Must be positive"]]
+
+   ["-d" "--dep COORDS" "Add jars to classpath"
+    :default []
+    :parse-fn parse-coords
+    :assoc-fn (fn [m k v] (update m k (fnil conj []) v))]
 
    ["-h" "--help"]])
 
@@ -83,6 +98,11 @@
       (System/exit (:exit options)))
     (when (:instrument options)
       (st/instrument))
+    (when-let [dep (:dep options)]
+      (println "Adding dependencies to classpath: " dep)
+      (add-dependencies :coordinates dep
+                        :repositories (merge cemerick.pomegranate.aether/maven-central
+                                             {"clojars" "https://clojars.org/repo"})))
     (doseq [cls (:classes options)]
       (println "\n;; ====" cls "====")
       (if (resolve (symbol cls))
