@@ -1,7 +1,9 @@
 (ns tortilla.main
-  (:require [clojure.string :as str]
+  (:require [clojure.edn :as edn]
+            [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
             [cemerick.pomegranate :refer [add-dependencies]]
+            [cemerick.pomegranate.aether :refer [maven-central]]
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
             [tortilla.wrap :refer [defwrapper]]
@@ -25,7 +27,7 @@
 (defn parse-coords
   [coord-str]
   (if (re-matches #"\[.*\]" coord-str)
-    (clojure.edn/read-string coord-str)
+    (edn/read-string coord-str)
     (let [parts (str/split coord-str #":")]
       (vector (symbol (str/join "/" (butlast parts)))
               (last parts)))))
@@ -49,6 +51,8 @@
     :default []
     :parse-fn parse-coords
     :assoc-fn (fn [m k v] (update m k (fnil conj []) v))]
+
+   #_["-f" "--filter" "Filter method names by regex"]
 
    ["-h" "--help"]])
 
@@ -109,7 +113,7 @@
       (println "Adding dependencies to classpath: " dep)
       (ensure-compiler-loader)
       (add-dependencies :coordinates dep
-                        :repositories (merge cemerick.pomegranate.aether/maven-central
+                        :repositories (merge maven-central
                                              {"clojars" "https://clojars.org/repo"})
                         :classloader @clojure.lang.Compiler/LOADER))
     (doseq [cls (:classes options)]
