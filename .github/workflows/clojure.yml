@@ -29,5 +29,6 @@ jobs:
 
     - name: Push coverage to Coveralls.io
       run: |
+        bin/fixup_paths.sh
         PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
         bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
