@@ -40,6 +40,11 @@
     :java-source-paths ["src/java"]
     :main tortilla.main}
 
+   :uberjar
+   [:cli
+    {:dependencies [[org.clojure/clojure "1.10.1"]]
+     :aot :all}]
+
    :dev
    [:cli
     {:main tortilla.core
