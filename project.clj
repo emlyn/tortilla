@@ -33,6 +33,7 @@
 
    :cli
    {:dependencies [[org.clojure/tools.cli "0.4.2"]
+                   [orchestra "2019.02.06-1"]
                    [fipp "0.6.22"]
                    [com.cemerick/pomegranate "1.1.0"]]
     :source-paths ["src/cli"]
@@ -42,8 +43,7 @@
    :dev
    [:cli
     {:main tortilla.core
-     :dependencies [[org.clojure/test.check "0.10.0"]
-                    [orchestra "2019.02.06-1"]]}]
+     :dependencies [[org.clojure/test.check "0.10.0"]]}]
 
    :clj-kondo
    {:dependencies [[clj-kondo "2019.11.23"]]}
