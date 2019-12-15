@@ -33,38 +33,51 @@
               (last parts)))))
 
 (def cli-options
-  [["-m" "--[no-]metadata" "Print metadata"
+  [["-c" "--class CLASS"
+    :desc "Class to generate a wrapper. May be specified multiple times."
+    :default []
+    :parse-fn #(symbol %)
+    :assoc-fn (fn [m k v] (update m k conj v))]
+
+   [nil "--[no-]metadata"
+    :desc "Include metadata in output."
     :default true]
 
-   ["-i" "--[no-]instrument" "Instrument specs"
+   [nil "--[no-]instrument"
+    :desc "Instrument specs."
     :default true]
 
-   ["-c" "--[no-]coerce" "Include coercion function"
+   [nil "--[no-]coerce"
+    :desc "Include coercion function."
     :default true]
 
-   ["-w" "--width CHARS" "Output width in chars"
+   ["-w" "--width CHARS"
+    :desc "Limit output width."
     :default 100
     :parse-fn #(Integer/parseInt %)
     :validate [pos? "Must be positive"]]
 
-   ["-d" "--dep COORDS" "Add jars to classpath"
-    :default []
+   ["-d" "--dep COORD"
+    :desc (str "Add jars to classpath. May be specified multiple times. "
+               "COORD may be in leiningen format ('[group/artifact \"version\"]') "
+               "or maven format (group:artifact:version). "
+               "In both cases the group part is optional, and defaults to the artifact ID.")
     :parse-fn parse-coords
     :assoc-fn (fn [m k v] (update m k (fnil conj []) v))]
 
-   #_["-f" "--filter" "Filter method names by regex"]
-
    ["-h" "--help"]])
 
-(defn usage
-  [summary]
-  (str/join \newline
-            ["Usage: tortilla [options] classes..."
-             ""
-             "Options:"
-             summary
-             ""
-             "Classes: names of one or more classes for which to generate Clojure wrappers"]))
+(defn message
+  [summary & [error]]
+  (->> [(when error "Error:")
+        error
+        (when error "")
+        "Usage: tortilla [options]"
+        ""
+        "Options:"
+        summary]
+       (remove nil?)
+       (str/join \newline)))
 
 (defn validate-args
   [args]
@@ -72,27 +85,22 @@
     (cond
       (:help options)
       {:exit 0
-       :message (usage summary)}
+       :message (message summary)}
 
       errors
       {:exit 1
-       :message (str/join \newline
-                          ["Error:"
-                           errors
-                           ""
-                           (usage summary)])}
+       :message (message summary (str/join \newline errors))}
 
-      (zero? (count arguments))
+      (seq arguments)
       {:exit 1
-       :message (str/join \newline
-                          ["Error:"
-                           "Must supply at least one class to wrap"
-                           ""
-                           (usage summary)])}
+       :message (message summary "Options must start with a hyphen")}
+
+      (not (seq (:class options)))
+      {:exit 1
+       :message (message summary "Must supply at least one class to wrap")}
 
       :else
-      (assoc options
-             :classes arguments))))
+      options)))
 
 (defn ensure-compiler-loader
   "Ensures the clojure.lang.Compiler/LOADER var is bound to a DynamicClassLoader,
@@ -116,12 +124,14 @@
                         :repositories (merge maven-central
                                              {"clojars" "https://clojars.org/repo"})
                         :classloader @clojure.lang.Compiler/LOADER))
-    (doseq [cls (:classes options)]
+    (doseq [cls (:class options)]
+      (when-not (instance? Class (resolve cls))
+        (println "Invalid class:" cls)
+        (System/exit 1)))
+    (doseq [cls (:class options)]
       (println "\n;; ====" cls "====")
-      (if (resolve (symbol cls))
-        (fipp/pprint (if (:coerce options)
-                       (macroexpand-1 `(defwrapper ~(symbol cls) {:coerce coerce}))
-                       (macroexpand-1 `(defwrapper ~(symbol cls) {:coerce nil})))
-                     {:print-meta (:metadata options)
-                      :width (:width options)})
-        (println ";; Error loading class")))))
+      (fipp/pprint (if (:coerce options)
+                     (macroexpand-1 `(defwrapper ~cls {:coerce coerce}))
+                     (macroexpand-1 `(defwrapper ~cls {:coerce nil})))
+                   {:print-meta (:metadata options)
+                    :width (:width options)}))))
