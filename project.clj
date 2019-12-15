@@ -46,8 +46,8 @@
      :dependencies [[org.clojure/test.check "0.10.0"]]}]
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2019.11.23"]]}
+   {:dependencies [[clj-kondo "2019.12.14"]]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "0.0-554"]
+   {:dependencies [[lambdaisland/kaocha "0.0-565"]
                    [lambdaisland/kaocha-cloverage "0.0-41"]]}})
