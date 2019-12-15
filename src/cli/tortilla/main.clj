@@ -90,6 +90,13 @@
       (assoc options
              :classes arguments))))
 
+(defn ensure-compiler-loader
+  "Ensures the clojure.lang.Compiler/LOADER var is bound to a DynamicClassLoader,
+  so that we can add to Clojure's classpath dynamically."
+  []
+  (when-not (bound? Compiler/LOADER)
+    (.bindRoot Compiler/LOADER (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader)))))
+
 (defn -main
   [& args]
   (let [options (validate-args args)]
@@ -100,9 +107,11 @@
       (st/instrument))
     (when-let [dep (:dep options)]
       (println "Adding dependencies to classpath: " dep)
+      (ensure-compiler-loader)
       (add-dependencies :coordinates dep
                         :repositories (merge cemerick.pomegranate.aether/maven-central
-                                             {"clojars" "https://clojars.org/repo"})))
+                                             {"clojars" "https://clojars.org/repo"})
+                        :classloader @clojure.lang.Compiler/LOADER))
     (doseq [cls (:classes options)]
       (println "\n;; ====" cls "====")
       (if (resolve (symbol cls))
