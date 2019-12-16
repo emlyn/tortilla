@@ -20,6 +20,25 @@
     (int val)
     val))
 
+(defn test-fn
+  [])
+
+(def not-a-fn :x)
+
+(declare unbound-var)
+
+(deftest compile-time-fn-test
+  (is (fn? (w/compile-time-fn nil)))
+  (is (fn? (w/compile-time-fn 'nil)))
+  (is (fn? (w/compile-time-fn test-fn)))
+  (is (fn? (w/compile-time-fn 'test-fn)))
+  (is (fn? (w/compile-time-fn #'test-fn)))
+  (is (thrown? IllegalArgumentException (w/compile-time-fn not-a-fn)))
+  (is (thrown? IllegalArgumentException (w/compile-time-fn #'not-a-fn)))
+  (is (thrown? IllegalArgumentException (w/compile-time-fn unbound-var)))
+  (is (thrown? IllegalArgumentException (w/compile-time-fn #'unbound-var)))
+  (is (thrown? IllegalArgumentException (w/compile-time-fn '(fn [x] (inc x))))))
+
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
     (is (w/defwrapper TestClass {:coerce coerce})))
@@ -44,6 +63,12 @@
     (is (= 10 (qux 10)))
     (is (= 5  (qux 10 5)))
     (is (= 0  (qux 10 (int 5) 5))))
+
+  (testing "non-consecutive arg counts"
+    (is (= 6 (qux 10 2 2)))
+    (is (= 4 (qux 10 2 2 2)))
+    (is (= "qux_z4" (qux "z" 2 2)))
+    (is (= "qux_z3" (qux "z" 2 2 1))))
 
   (testing "Checking array arguments"
     (is (= 3

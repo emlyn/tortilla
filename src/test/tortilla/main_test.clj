@@ -45,6 +45,13 @@
       (let [stdout (with-out-str (m/-main "-c" "Number" "--members"))]
         (is (re-find #"(?m)^;; =+ Number =+$" stdout))
         (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))))
+    (testing "Filtering members"
+      (let [stdout (with-out-str (m/-main "-c" "Number" "-i" "longValue" "--members"))]
+        (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))
+        (is (not (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
+      (let [stdout (with-out-str (m/-main "-c" "Number" "-x" "longValue" "--members"))]
+        (is (not (re-find #"(?m)longValue\(java.lang.Number\):long" stdout)))
+        (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
       (let [stdout (with-out-str (m/-main "-w" "200" "--no-metadata"
                                           "-c" "Object" "-c" "java.lang.Number"))]

@@ -56,6 +56,11 @@ public class TestClass {
         return i - Arrays.stream(j).sum();
     }
 
+    // second vararg overload with non-consecutive number of args
+    public static String qux(String s, int i, int j, int... k) {
+        return "qux_" + s + (i + j - Arrays.stream(k).sum());
+    }
+
     // void return
     public static void flibble(Long i) {
         // do nothing
