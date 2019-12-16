@@ -307,14 +307,18 @@
       :else      (throw (IllegalArgumentException.
                          (str "compile-time-fn: expecting a (compile-time) function or nil, got: " fun))))))
 
-(defmacro defwrapper [klazz {:keys [prefix coerce filter-fn] :as opts}]
-  (let [members (->> klazz
-                     resolve
-                     ((juxt class-constructors class-methods))
-                     (apply concat)
-                     (remove (set (class-methods Object)))
-                     (filter (compile-time-fn filter-fn))
-                     (group-by member-name))]
+(defn class-members
+  [klazz {:keys [filter-fn]}]
+  (->> klazz
+       resolve
+       ((juxt class-constructors class-methods))
+       (apply concat)
+       (remove (set (class-methods Object)))
+       (filter (compile-time-fn filter-fn))))
+
+(defmacro defwrapper [klazz {:keys [prefix coerce] :as opts}]
+  (let [members (group-by member-name
+                          (class-members klazz opts))]
     `(do
        ~@(for [[mname membs] members
                :let [fname (symbol (str prefix (camel->kebab mname)))]]

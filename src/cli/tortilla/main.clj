@@ -6,7 +6,7 @@
             [cemerick.pomegranate.aether :refer [maven-central]]
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
-            [tortilla.wrap :refer [defwrapper]]
+            [tortilla.wrap :as w :refer [defwrapper]]
             [tortilla.spec])
   (:gen-class))
 
@@ -38,6 +38,17 @@
     :default []
     :parse-fn #(symbol %)
     :assoc-fn (fn [m k v] (update m k conj v))]
+
+   ["-m" "--members"
+    :desc "Print list of class members instead of wrapper code"]
+
+   ["-i" "--include REGEX"
+    :desc "Only wrap members that match REGEX. Match members in format name(arg1.type,arg2.type):return.type"
+    :parse-fn re-pattern]
+
+   ["-x" "--exclude REGEX"
+    :desc "Exclude members that match REGEX from wrapping"
+    :parse-fn re-pattern]
 
    [nil "--[no-]metadata"
     :desc "Include metadata in output."
@@ -109,6 +120,33 @@
   (when-not (bound? Compiler/LOADER)
     (.bindRoot Compiler/LOADER (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader)))))
 
+(defn member-str
+  [member]
+  (str (w/member-name member)
+       \(
+       (str/join \, (map #(w/class-name %)
+                         (take (cond-> (w/parameter-count member)
+                                 (w/member-varargs? member) inc)
+                               (w/parameter-types member))))
+       (when (w/member-varargs? member) "...")
+       \)
+       \:
+       (w/class-name (w/return-type member))))
+
+(def ^:dynamic *filter-in* nil)
+(def ^:dynamic *filter-out* nil)
+
+(defn filter-fn
+  [member]
+  (let [mstr (member-str member)]
+    ;; Normally using dynamic vars wouldn't work here,
+    ;; as this function would be called at compile time.
+    ;; It only works here because we explicitly call macroexpand-1 at run time
+    (and (or (nil? *filter-in*)
+             (re-find *filter-in* mstr))
+         (or (nil? *filter-out*)
+             (not (re-find *filter-out* mstr))))))
+
 (defn -main
   [& args]
   (let [options (validate-args args)]
@@ -130,8 +168,15 @@
         (System/exit 1)))
     (doseq [cls (:class options)]
       (println "\n;; ====" cls "====")
-      (fipp/pprint (if (:coerce options)
-                     (macroexpand-1 `(defwrapper ~cls {:coerce coerce}))
-                     (macroexpand-1 `(defwrapper ~cls {:coerce nil})))
-                   {:print-meta (:metadata options)
-                    :width (:width options)}))))
+      (binding [*filter-in* (:include options)
+                *filter-out* (:exclude options)]
+        (if (:members options)
+          (doseq [member (w/class-members cls {:filter-fn filter-fn})]
+            (println (member-str member)))
+          (fipp/pprint (if (:coerce options)
+                         (macroexpand-1 `(defwrapper ~cls {:coerce coerce
+                                                           :filter-fn filter-fn}))
+                         (macroexpand-1 `(defwrapper ~cls {:coerce nil
+                                                           :filter-fn filter-fn})))
+                       {:print-meta (:metadata options)
+                        :width (:width options)}))))))

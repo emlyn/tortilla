@@ -41,6 +41,10 @@
         #"(?m)\(clojure.core/instance[?] java.lang.Number \(#'tortilla.main/coerce p[0-9_]+ java.lang.Number\)\)"
         non-coerce-check
         #"(?m)\(clojure.core/instance[?] java.lang.Number p[0-9_]+\)"]
+    (testing "Listing members"
+      (let [stdout (with-out-str (m/-main "-c" "Number" "--members"))]
+        (is (re-find #"(?m)^;; =+ Number =+$" stdout))
+        (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))))
     (testing "With coercer"
       (let [stdout (with-out-str (m/-main "-w" "200" "--no-metadata"
                                           "-c" "Object" "-c" "java.lang.Number"))]
