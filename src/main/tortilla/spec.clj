@@ -12,7 +12,7 @@
     java.time.Clock java.time.Duration java.time.Instant java.time.ZonedDateTime
     java.util.Arrays java.util.ArrayList java.util.HashMap java.util.UUID})
 
-(def example-methods
+(def example-members
   (set (mapcat #(concat (.getMethods ^Class %)
                         (.getConstructors ^Class %))
                example-classes)))
@@ -34,59 +34,59 @@
                         (symbol (.getName cls)))
                      example-classes)))))
 
-(s/def ::method
+(s/def ::member
   (s/with-gen
     #(instance? java.lang.reflect.Executable %)
-    #(s/gen example-methods)))
+    #(s/gen example-members)))
 
 (s/fdef w/class-methods
   :args (s/cat :class ::class)
-  :ret  (s/nilable (s/coll-of (s/and ::method
+  :ret  (s/nilable (s/coll-of (s/and ::member
                                      #(instance? java.lang.reflect.Method %)))))
 
 (s/fdef w/class-constructors
   :args (s/cat :class ::class)
-  :ret  (s/nilable (s/coll-of (s/and ::method
+  :ret  (s/nilable (s/coll-of (s/and ::member
                                      #(instance? java.lang.reflect.Constructor %)))))
 
-(s/fdef w/method-varargs?
-  :args (s/cat :method ::method)
+(s/fdef w/member-varargs?
+  :args (s/cat :member ::member)
   :ret  boolean?)
 
-(s/fdef w/method-static?
-  :args (s/cat :method ::method)
+(s/fdef w/member-static?
+  :args (s/cat :member ::member)
   :ret  boolean?)
 
-(s/fdef w/method-class
-  :args (s/cat :method ::method)
+(s/fdef w/member-class
+  :args (s/cat :member ::member)
   :ret  ::class)
 
 (s/fdef w/vararg-type
-  :args (s/cat :method ::method)
+  :args (s/cat :member ::member)
   :ret  (s/nilable ::class))
 
 (s/fdef w/class-name
   :args (s/cat :class ::class)
   :ret  ::class-name)
 
-(s/fdef w/method-name
-  :args (s/cat :method ::method)
+(s/fdef w/member-name
+  :args (s/cat :member ::member)
   :ret  string?)
 
-(s/fdef w/method-invocation
-  :args (s/cat :method ::method)
+(s/fdef w/member-invocation
+  :args (s/cat :member ::member)
   :ret  symbol?)
 
 (s/fdef w/parameter-count
-  :args (s/cat :method ::method)
+  :args (s/cat :member ::member)
   :ret  integer?)
 
 (s/fdef w/parameter-types
-  :args (s/cat :method ::method)
+  :args (s/cat :member ::member)
   :ret  (s/nilable (s/every ::class)))
 
 (s/fdef w/return-type
-  :args (s/cat :method ::method)
+  :args (s/cat :member ::member)
   :ret  ::class)
 
 (s/fdef w/camel->kebab
