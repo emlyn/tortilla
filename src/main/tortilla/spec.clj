@@ -67,7 +67,7 @@
 
 (s/fdef w/class-name
   :args (s/cat :class ::class)
-  :ret  ::class-name)
+  :ret  string?)
 
 (s/fdef w/member-name
   :args (s/cat :member ::member)
@@ -93,16 +93,6 @@
   :args (s/cat :string string?)
   :ret  string?)
 
-(s/fdef w/primitive-class
-  :args (s/cat :sym simple-symbol?)
-  :ret  symbol?
-  :fn   #(or ('#{java.lang.Byte/TYPE java.lang.Short/TYPE java.lang.Integer/TYPE
-                 java.lang.Long/TYPE java.lang.Float/TYPE java.lang.Double/TYPE
-                 java.lang.Character/TYPE java.lang.Boolean/TYPE}
-              (-> % :ret))
-             (= (-> % :ret)
-                (-> % :args :sym))))
-
 (s/fdef w/array-class
   :args (s/cat :class ::class)
   :ret  (s/and ::class
@@ -111,14 +101,14 @@
             (-> % :args :class)))
 
 (s/fdef w/ensure-boxed
-  :args (s/cat :sym simple-symbol?)
+  :args (s/cat :klazz ::class)
   :ret  simple-symbol?
   :fn   #(or ('#{java.lang.Byte java.lang.Short java.lang.Integer
                  java.lang.Long java.lang.Float java.lang.Double
                  java.lang.Character java.lang.Boolean}
               (-> % :ret))
-             (= (-> % :ret)
-                (-> % :args :sym))))
+             (= (-> % :ret name)
+                (-> % :args :klazz w/class-name))))
 
 (s/fdef w/ensure-boxed-long-double
   :args (s/cat :cls ::class)

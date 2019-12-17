@@ -24,7 +24,7 @@
     (.getComponentType ^Class (last (.getParameterTypes member)))))
 
 (defn class-name [^Class klazz]
-  (symbol (.getName klazz)))
+  (.getName klazz))
 
 (defprotocol MemberInfo
   (member-name* [_])
@@ -57,7 +57,7 @@
     (.getName m))
   (member-invocation* [^Method m]
     (if (member-static? m)
-      (symbol (-> m member-class class-name str) (member-name m))
+      (symbol (-> m member-class class-name) (member-name m))
       (symbol (str "." (member-name m)))))
   (parameter-count* [^Method m]
     (cond-> (.getParameterCount m)
@@ -96,37 +96,26 @@
       (str/replace #"([a-z0-9])([A-Z])" "$1-$2")
       (str/lower-case)))
 
-(defn primitive-class [sym]
-  ('{byte java.lang.Byte/TYPE
-     short java.lang.Short/TYPE
-     int java.lang.Integer/TYPE
-     long java.lang.Long/TYPE
-     float java.lang.Float/TYPE
-     double java.lang.Double/TYPE
-     char java.lang.Character/TYPE
-     boolean java.lang.Boolean/TYPE} sym sym))
-
 (defn array-class [klz]
   (class (into-array klz [])))
 
 (defn ensure-boxed [t]
-  (get '{byte java.lang.Byte
-         short java.lang.Short
-         int java.lang.Integer
-         long java.lang.Long
-         float java.lang.Float
-         double java.lang.Double
-         char java.lang.Character
-         boolean java.lang.Boolean
-         void java.lang.Object}
-       t t))
+  (let [sym (symbol (class-name t))]
+    (get '{byte java.lang.Byte
+           short java.lang.Short
+           int java.lang.Integer
+           long java.lang.Long
+           float java.lang.Float
+           double java.lang.Double
+           char java.lang.Character
+           boolean java.lang.Boolean
+           void java.lang.Object}
+         sym sym)))
 
 (defn ensure-boxed-long-double
   "Allow long and double, box everything else."
-  [c]
-  (let [t (if (instance? Class c)
-            (class-name c)
-            c)]
+  [t]
+  (let [sym (symbol (class-name t))]
     (get '{byte java.lang.Byte
            short java.lang.Short
            int java.lang.Integer
@@ -134,7 +123,7 @@
            char java.lang.Character
            boolean java.lang.Boolean
            void java.lang.Object}
-         t t)))
+         sym sym)))
 
 (defn tagged [value tag]
   (vary-meta value assoc :tag (ensure-boxed-long-double tag)))
@@ -163,36 +152,36 @@
         ~@(mapcat
            (fn [member]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz)) ;; TODO: or nil
+                             `(instance? ~(ensure-boxed klz) ;; TODO: or nil
                                          ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            `(~coerce ~sym ~(ensure-boxed klz))
                                             sym)))
                            arg-vec
                            (parameter-types member)))
                (~(member-invocation member)
                 ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz))
+                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
                        arg-vec
                        (parameter-types member)))])
            uniadics)
         ~@(mapcat
            (fn [member]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz))
+                             `(instance? ~(ensure-boxed klz)
                                          ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            `(~coerce ~sym ~(ensure-boxed klz))
                                             sym)))
                            arg-vec
                            (parameter-types member)))
                (~(member-invocation member)
                 ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed (class-name klz))) sym) klz))
+                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
                        (take (parameter-count member) arg-vec)
                        (parameter-types member))
                 ~(tagged-local `(into-array ~(vararg-type member)
                                             ~(mapv (fn [sym]
                                                      (if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed (class-name (vararg-type member))))
+                                                       `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
                                                        sym))
                                                    (drop (parameter-count member) arg-vec)))
 
@@ -218,21 +207,21 @@
         ~@(mapcat
            (fn [member]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed (class-name klz))
+                             `(instance? ~(ensure-boxed klz)
                                          ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                            `(~coerce ~sym ~(ensure-boxed klz))
                                             sym)))
                            (take min-arity arg-vec)
                            (parameter-types member))
-                    (every? (partial instance? ~(ensure-boxed (class-name (vararg-type member))))
+                    (every? (partial instance? ~(ensure-boxed (vararg-type member)))
                             ~(if coerce
-                               `(map #(~coerce % ~(ensure-boxed (class-name (vararg-type member))))
+                               `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
                                      ~more-arg)
                                more-arg)))
                (~(member-invocation member)
                 ~@(map (fn [sym ^Class klz]
                          (tagged-local (if coerce
-                                         `(~coerce ~sym ~(ensure-boxed (class-name klz)))
+                                         `(~coerce ~sym ~(ensure-boxed klz))
                                          sym)
                                        klz))
                        (take (parameter-count member) arg-vec)
@@ -240,13 +229,13 @@
                 ~(tagged-local `(into-array ~(vararg-type member)
                                             (into ~(mapv (fn [sym]
                                                            (if coerce
-                                                             `(~coerce ~sym ~(ensure-boxed (class-name (vararg-type member))))
+                                                             `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
                                                              sym))
                                                          (subvec arg-vec
                                                                  (parameter-count member)
                                                                  min-arity))
                                                   ~(if coerce
-                                                     `(map #(~coerce % ~(ensure-boxed (class-name (vararg-type member))))
+                                                     `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
                                                           ~more-arg)
                                                     more-arg)))
                                (array-class (vararg-type member))))])
