@@ -102,9 +102,36 @@
                             (foo tc 123 "456")))
       (is (thrown-with-msg? IllegalArgumentException
                             #"Unrecognised types for tortilla.TestClass.foo: tortilla.TestClass, java.lang.String, java.lang.String, java.lang.String, java.lang.Long"
-                            (foo tc "1" "2" "3" 4)))))
+                            (foo tc "1" "2" "3" 4))))))
 
+(declare x-with-primitives)
+(deftest overloads-with-primitives
+  (is (w/defwrapper TestClass {:prefix "x-"}))
+  (is (= "boolean_false" (x-with-primitives false)))
+  (is (= "char_x"        (x-with-primitives \x)))
+  (is (= "byte_120"      (x-with-primitives (first (.getBytes "x")))))
+  (is (= "short_99"      (x-with-primitives (short 99))))
+  (is (= "int_88"        (x-with-primitives (int 88))))
+  (is (= "long_77"       (x-with-primitives 77)))
+  (is (= "float_2.5"     (x-with-primitives (float 2.5))))
+  (is (= "double_3.5"    (x-with-primitives 3.5)))
+  (is (= "String_z"      (x-with-primitives "z"))))
+
+(declare y-without-primitives)
+(deftest overloads-without-primitives
+  (is (w/defwrapper TestClass {:prefix "y-"}))
+  (is (= "Boolean_false" (y-without-primitives false)))
+  (is (= "Character_x"   (y-without-primitives \x)))
+  (is (= "Byte_120"      (y-without-primitives (first (.getBytes "x")))))
+  (is (= "Short_99"      (y-without-primitives (short 99))))
+  (is (= "Integer_88"    (y-without-primitives (int 88))))
+  (is (= "Long_77"       (y-without-primitives 77)))
+  (is (= "Float_2.5"     (y-without-primitives (float 2.5))))
+  (is (= "Double_3.5"    (y-without-primitives 3.5)))
+  (is (= "String_z"      (y-without-primitives "z"))))
+
+(deftest more-types
   (testing "Instantiating some more wrappers for better coverage"
-    (w/defwrapper System    {:prefix "tortilla-system-"})
-    (w/defwrapper Exception {:prefix "tortilla-exception-"})
-    (w/defwrapper String    {:prefix "tortilla-string-"})))
+    (is (w/defwrapper System    {:prefix "tortilla-system-"}))
+    (is (w/defwrapper Exception {:prefix "tortilla-exception-"}))
+    (is (w/defwrapper String    {:prefix "tortilla-string-"}))))

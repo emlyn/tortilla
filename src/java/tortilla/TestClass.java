@@ -66,6 +66,26 @@ public class TestClass {
         // do nothing
     }
 
+    public static String withPrimitives(boolean x) { return "boolean_" + x; }
+    public static String withPrimitives(char x) { return "char_" + x; }
+    public static String withPrimitives(byte x) { return "byte_" + x; }
+    public static String withPrimitives(short x) { return "short_" + x; }
+    public static String withPrimitives(int x) { return "int_" + x; }
+    public static String withPrimitives(long x) { return "long_" + x; }
+    public static String withPrimitives(float x) { return "float_" + x; }
+    public static String withPrimitives(double x) { return "double_" + x; }
+    public static String withPrimitives(String x) { return "String_" + x; }
+
+    public static String withoutPrimitives(Boolean x) { return "Boolean_" + x; }
+    public static String withoutPrimitives(Character x) { return "Character_" + x; }
+    public static String withoutPrimitives(Byte x) { return "Byte_" + x; }
+    public static String withoutPrimitives(Short x) { return "Short_" + x; }
+    public static String withoutPrimitives(Integer x) { return "Integer_" + x; }
+    public static String withoutPrimitives(Long x) { return "Long_" + x; }
+    public static String withoutPrimitives(Float x) { return "Float_" + x; }
+    public static String withoutPrimitives(Double x) { return "Double_" + x; }
+    public static String withoutPrimitives(String x) { return "String_" + x; }
+
     // non-public method, should not get a wrapper function
     String foo(String s, long i) {
         throw new RuntimeException("This shouldn't be called, it isn't public");
