@@ -120,6 +120,37 @@
              (= (-> % :ret)
                 (-> % :args :sym))))
 
+(s/fdef w/ensure-boxed-long-double
+  :args (s/cat :cls ::class)
+  :ret  simple-symbol?)
+
+(s/fdef w/tagged
+  :args (s/cat :value (s/or :sym simple-symbol?
+                            :vec vector?)
+               :tag ::class)
+  :ret #(->> % meta :tag))
+
+(s/fdef w/tagged-local
+  :args (s/cat :value (s/or :sym simple-symbol?
+                            :coerce seq?)
+               :tag ::class)
+  :ret (s/or :long-double (s/and seq? #(-> % first #{`long `double}))
+             :other #(->> % meta :tag)))
+
+(s/fdef w/arity-wrapper-form
+  :args (s/cat :arity nat-int?
+               :uniadics (s/coll-of (s/and ::member #(not (w/member-varargs? %)))
+                                    :kind vector? :min-count 1 :distinct true)
+               :variadics (s/coll-of (s/and ::member w/member-varargs?)
+                                     :kind vector? :distinct true)
+               :options (s/keys)))
+
+(s/fdef w/variadic-wrapper-form
+  :args (s/cat :min-arity nat-int?
+               :members (s/coll-of (s/and ::member w/member-varargs?)
+                                   :kind vector? :distinct true :min-count 1)
+               :options (s/keys)))
+
 (s/fdef w/defwrapper
   :args (s/cat :klazz (s/and simple-symbol?
                              #(instance? Class (resolve %)))

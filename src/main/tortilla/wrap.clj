@@ -137,10 +137,7 @@
          t t)))
 
 (defn tagged [value tag]
-  (let [tag (if (and (instance? Class tag) (.isArray ^Class tag))
-              `(array-class ~(primitive-class (class-name (.getComponentType ^Class tag))))
-              tag)]
-    (vary-meta value assoc :tag (ensure-boxed-long-double tag))))
+  (vary-meta value assoc :tag (ensure-boxed-long-double tag)))
 
 (defn tagged-local [value tag]
   (let [tag (ensure-boxed-long-double tag)]
@@ -155,7 +152,7 @@
       (vary-meta value assoc :tag tag))))
 
 ;; Generate form for one arity of a member
-(defn arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
+(defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
         members (concat uniadics variadics)
         ret     (if (apply = (map return-type members))
@@ -209,7 +206,7 @@
                            (.getName ^Class (type ~(last arg-vec))))))))))
 
 ;; Generate form for the highest/variadic arity of a member
-(defn variadic-wrapper-form [min-arity members {:keys [coerce]}]
+(defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
   (let [more-arg (gensym "more_")
         arg-vec (into (mapv #(gensym (str "p" % "_")) (range min-arity))
                       ['& more-arg])
