@@ -305,6 +305,7 @@
       (nil? fun) (constantly true)
       (fn? fun)  fun
       :else      (throw (IllegalArgumentException.
+                         ^String
                          (str "compile-time-fn: expecting a (compile-time) function or nil, got: " fun))))))
 
 (defn class-members
