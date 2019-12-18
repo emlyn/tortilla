@@ -7,6 +7,8 @@
           :source-paths ["src/main" "src/cli"]
           :test-paths   ["src/test"]}]
  :kaocha.filter/skip-meta [:kaocha/skip :no-gen]
+ :kaocha.spec.test.check/instrument? true
+ :kaocha.spec.test.check/check-asserts? true
  :plugins [:kaocha.plugin/print-invocations
            :kaocha.plugin/cloverage]
  :cloverage/opts {:output "target/coverage"

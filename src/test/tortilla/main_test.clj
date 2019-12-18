@@ -42,18 +42,20 @@
         non-coerce-check
         #"(?m)\(clojure.core/instance[?] java.lang.Number p[0-9_]+\)"]
     (testing "Listing members"
-      (let [stdout (with-out-str (m/-main "-c" "Number" "--members"))]
+      (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "Number" "--members"))]
         (is (re-find #"(?m)^;; =+ Number =+$" stdout))
         (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))))
     (testing "Filtering members"
-      (let [stdout (with-out-str (m/-main "-c" "Number" "-i" "longValue" "--members"))]
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--members"
+                                          "-c" "Number" "-i" "longValue"))]
         (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))
         (is (not (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
-      (let [stdout (with-out-str (m/-main "-c" "Number" "-x" "longValue" "--members"))]
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--members"
+                                          "-c" "Number" "-x" "longValue"))]
         (is (not (re-find #"(?m)longValue\(java.lang.Number\):long" stdout)))
         (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
-      (let [stdout (with-out-str (m/-main "-w" "200" "--no-metadata"
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200"
                                           "-c" "Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -62,8 +64,8 @@
         (is (re-find coerce-check stdout))
         (is (not (re-find non-coerce-check stdout)))))
     (testing "Without coercer"
-      (let [stdout (with-out-str (m/-main "-w" "200" "--no-metadata" "--no-coerce"
-                                          "-c" "Object" "-c" "java.lang.Number"))]
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-coerce"
+                                          "-w" "200" "-c" "Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
@@ -71,6 +73,7 @@
         (is (not (re-find coerce-check stdout)))
         (is (re-find non-coerce-check stdout))))
     (testing "Dynamically adding to classpath"
-      (let [stdout (with-out-str (m/-main "-d" "org.jblas:jblas:1.2.4"
+      (let [stdout (with-out-str (m/-main "--no-instrument"
+                                          "-d" "org.jblas:jblas:1.2.4"
                                           "-c" "org.jblas.ComplexDoubleMatrix"))]
         (is (re-find #"(?m)^;; =+ org.jblas.ComplexDoubleMatrix =+$" stdout))))))

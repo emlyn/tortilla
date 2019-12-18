@@ -129,8 +129,8 @@
 
 (s/fdef w/arity-wrapper-form
   :args (s/cat :arity nat-int?
-               :uniadics (s/coll-of (s/and ::member #(not (w/member-varargs? %)))
-                                    :kind vector? :min-count 1 :distinct true)
+               :uniadics (s/nilable (s/coll-of (s/and ::member #(not (w/member-varargs? %)))
+                                               :kind vector? :distinct true))
                :variadics (s/coll-of (s/and ::member w/member-varargs?)
                                      :kind vector? :distinct true)
                :options (s/keys)))

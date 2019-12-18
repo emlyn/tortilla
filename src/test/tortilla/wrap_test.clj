@@ -115,7 +115,10 @@
   (is (= "long_77"       (x-with-primitives 77)))
   (is (= "float_2.5"     (x-with-primitives (float 2.5))))
   (is (= "double_3.5"    (x-with-primitives 3.5)))
-  (is (= "String_z"      (x-with-primitives "z"))))
+  (is (= "String_z"      (x-with-primitives "z")))
+  (is (thrown-with-msg?  IllegalArgumentException
+                         #"Unrecognised types for tortilla.TestClass.withPrimitives"
+                         (x-with-primitives :oops))))
 
 (declare y-without-primitives)
 (deftest overloads-without-primitives
@@ -128,7 +131,10 @@
   (is (= "Long_77"       (y-without-primitives 77)))
   (is (= "Float_2.5"     (y-without-primitives (float 2.5))))
   (is (= "Double_3.5"    (y-without-primitives 3.5)))
-  (is (= "String_z"      (y-without-primitives "z"))))
+  (is (= "String_z"      (y-without-primitives "z")))
+  (is (thrown-with-msg?  IllegalArgumentException
+                         #"Unrecognised types for tortilla.TestClass.withoutPrimitives"
+                         (y-without-primitives :oops))))
 
 (deftest more-types
   (testing "Instantiating some more wrappers for better coverage"
