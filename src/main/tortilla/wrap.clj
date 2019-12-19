@@ -148,51 +148,54 @@
                   (return-type (first members))
                   java.lang.Object)]
     `(~(tagged `[~@arg-vec] ret)
-      (cond
-        ~@(mapcat
-           (fn [member]
-             `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed klz) ;; TODO: or nil
-                                         ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed klz))
-                                            sym)))
+      ~(if (and (zero? arity)
+                (= 1 (count members)))
+         `(~(member-invocation (first members)))
+         `(cond
+            ~@(mapcat
+               (fn [member]
+                 `[(and ~@(map (fn [sym ^Class klz]
+                                 `(instance? ~(ensure-boxed klz) ;; TODO: or nil
+                                             ~(if coerce
+                                                `(~coerce ~sym ~(ensure-boxed klz))
+                                                sym)))
+                               arg-vec
+                               (parameter-types member)))
+                   (~(member-invocation member)
+                    ~@(map (fn [sym ^Class klz]
+                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
                            arg-vec
-                           (parameter-types member)))
-               (~(member-invocation member)
-                ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                       arg-vec
-                       (parameter-types member)))])
-           uniadics)
-        ~@(mapcat
-           (fn [member]
-             `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed klz)
-                                         ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed klz))
-                                            sym)))
-                           arg-vec
-                           (parameter-types member)))
-               (~(member-invocation member)
-                ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                       (take (parameter-count member) arg-vec)
-                       (parameter-types member))
-                ~(tagged-local `(into-array ~(vararg-type member)
-                                            ~(mapv (fn [sym]
-                                                     (if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
-                                                       sym))
-                                                   (drop (parameter-count member) arg-vec)))
+                           (parameter-types member)))])
+               uniadics)
+            ~@(mapcat
+               (fn [member]
+                 `[(and ~@(map (fn [sym ^Class klz]
+                                 `(instance? ~(ensure-boxed klz)
+                                             ~(if coerce
+                                                `(~coerce ~sym ~(ensure-boxed klz))
+                                                sym)))
+                               arg-vec
+                               (parameter-types member)))
+                   (~(member-invocation member)
+                    ~@(map (fn [sym ^Class klz]
+                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
+                           (take (parameter-count member) arg-vec)
+                           (parameter-types member))
+                    ~(tagged-local `(into-array ~(vararg-type member)
+                                                ~(mapv (fn [sym]
+                                                         (if coerce
+                                                           `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
+                                                           sym))
+                                                       (drop (parameter-count member) arg-vec)))
 
-                               (array-class (vararg-type member))))])
-           variadics)
-        :else (throw (IllegalArgumentException.
-                      ^String
-                      (str ~(str "Unrecognised types for " (-> members first member-class class-name)
-                                 \. (-> members first member-name) ": ")
-                           ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (butlast arg-vec))
-                           (.getName ^Class (type ~(last arg-vec))))))))))
+                                   (array-class (vararg-type member))))])
+               variadics)
+            :else (throw (IllegalArgumentException.
+                          ^String
+                          (str ~(str "Unrecognised types for " (-> members first member-class class-name)
+                                     \. (-> members first member-name) ": ")
+                               ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (butlast arg-vec))
+                               (.getName ^Class (type ~(last arg-vec)))))))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
