@@ -53,7 +53,9 @@
            (hex 42)))
     (is (= "7b"
            (hexy (int 123))
-           (hexy 123))))
+           (hexy 123)))
+    (is (= "<null>"
+           (hexy nil))))
 
   #_(testing "Can pass in null for object parameters"
     (is (= "<null>"
@@ -118,7 +120,8 @@
   (is (= "String_z"      (x-with-primitives "z")))
   (is (thrown-with-msg?  IllegalArgumentException
                          #"Unrecognised types for tortilla.TestClass.withPrimitives"
-                         (x-with-primitives :oops))))
+                         (x-with-primitives :oops)))
+  (is (= "String_<null>" (x-with-primitives nil))))
 
 (declare y-without-primitives)
 (deftest overloads-without-primitives

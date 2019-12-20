@@ -140,6 +140,16 @@
       :else
       (vary-meta value assoc :tag tag))))
 
+(defn primitive?
+  [^Class cls]
+  (.isPrimitive cls))
+
+(defn compatible-type?
+  [^Class typ val]
+  (or (instance? (resolve (ensure-boxed typ)) val)
+      (and (nil? val)
+           (not (primitive? typ)))))
+
 (defn type-error
   [name & args]
   (throw (IllegalArgumentException.
@@ -162,10 +172,10 @@
             ~@(mapcat
                (fn [member]
                  `[(and ~@(map (fn [sym ^Class klz]
-                                 `(instance? ~(ensure-boxed klz) ;; TODO: or nil
-                                             ~(if coerce
-                                                `(~coerce ~sym ~(ensure-boxed klz))
-                                                sym)))
+                                 `(compatible-type? ~klz
+                                                    ~(if coerce
+                                                       `(~coerce ~sym ~(ensure-boxed klz))
+                                                       sym)))
                                arg-vec
                                (parameter-types member)))
                    (~(member-invocation member)
@@ -177,10 +187,10 @@
             ~@(mapcat
                (fn [member]
                  `[(and ~@(map (fn [sym ^Class klz]
-                                 `(instance? ~(ensure-boxed klz)
-                                             ~(if coerce
-                                                `(~coerce ~sym ~(ensure-boxed klz))
-                                                sym)))
+                                 `(compatible-type? ~klz
+                                                    ~(if coerce
+                                                       `(~coerce ~sym ~(ensure-boxed klz))
+                                                       sym)))
                                arg-vec
                                (parameter-types member)))
                    (~(member-invocation member)
@@ -214,13 +224,13 @@
         ~@(mapcat
            (fn [member]
              `[(and ~@(map (fn [sym ^Class klz]
-                             `(instance? ~(ensure-boxed klz)
-                                         ~(if coerce
-                                            `(~coerce ~sym ~(ensure-boxed klz))
-                                            sym)))
+                             `(compatible-type? ~klz
+                                                ~(if coerce
+                                                   `(~coerce ~sym ~(ensure-boxed klz))
+                                                   sym)))
                            (take min-arity arg-vec)
                            (parameter-types member))
-                    (every? (partial instance? ~(ensure-boxed (vararg-type member)))
+                    (every? (partial compatible-type? ~(vararg-type member))
                             ~(if coerce
                                `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
                                      ~more-arg)

@@ -34,11 +34,7 @@ public class TestClass {
 
     // for coercion to Integer
     public static String hexy(Integer i) {
-        if (i == null) {
-            return "<null>";
-        } else {
-            return Integer.toHexString(i);
-        }
+        return i == null ? "<null>" : Integer.toHexString(i);
     }
 
     // two overloads with overlapping types, one more specific
@@ -74,7 +70,9 @@ public class TestClass {
     public static String withPrimitives(long x) { return "long_" + x; }
     public static String withPrimitives(float x) { return "float_" + x; }
     public static String withPrimitives(double x) { return "double_" + x; }
-    public static String withPrimitives(String x) { return "String_" + x; }
+    public static String withPrimitives(String x) {
+        return "String_" + (x != null ? x: "<null>");
+    }
 
     public static String withoutPrimitives(Boolean x) { return "Boolean_" + x; }
     public static String withoutPrimitives(Character x) { return "Character_" + x; }
