@@ -140,6 +140,13 @@
       :else
       (vary-meta value assoc :tag tag))))
 
+(defn type-error
+  [name & args]
+  (throw (IllegalArgumentException.
+          ^String
+          (str "Unrecognised types for " name ": "
+               (str/join ", " (map (comp class-name type) args))))))
+
 ;; Generate form for one arity of a member
 (defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
@@ -190,12 +197,9 @@
 
                                    (array-class (vararg-type member))))])
                variadics)
-            :else (throw (IllegalArgumentException.
-                          ^String
-                          (str ~(str "Unrecognised types for " (-> members first member-class class-name)
-                                     \. (-> members first member-name) ": ")
-                               ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (butlast arg-vec))
-                               (.getName ^Class (type ~(last arg-vec)))))))))))
+            :else (type-error ~(str (-> members first member-class class-name) \.
+                                    (-> members first member-name))
+                              ~@arg-vec))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
@@ -243,12 +247,11 @@
                                                     more-arg)))
                                (array-class (vararg-type member))))])
            members)
-        :else (throw (IllegalArgumentException.
-                      ^String
-                      (str ~(str "Unrecognised types for " (-> members first member-class class-name)
-                                 \. (-> members first member-name) ": ")
-                           ~@(mapcat (fn [p#] [`(.getName ^Class (type ~p#)) ", "]) (take min-arity arg-vec))
-                           (str/join ", " (map (fn [p#] (.getName ^Class (type p#))) ~more-arg)))))))))
+        :else (apply type-error
+                     ~(str (-> members first member-class class-name) \.
+                           (-> members first member-name))
+                     ~@(take min-arity arg-vec)
+                     ~more-arg)))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
