@@ -11,6 +11,7 @@
 (declare hex)
 (declare hexy)
 (declare flibble)
+(declare vararg)
 
 (defn coerce
   "Simple function to handle long->int coercion"
@@ -46,6 +47,12 @@
   (testing "Calling a static wrapper function"
     (is (= "foo2_123_456"
            (foo 123 456))))
+
+  (testing "Calling a vararg function"
+    (is (= "vararg_0"
+           (vararg)))
+    (is (= "vararg_1"
+           (vararg "a"))))
 
   (testing "Can automatically coerce from long to int/Integer"
     (is (= "2a"

@@ -6,6 +6,10 @@ public class TestClass {
     // constructor
     public TestClass() {}
 
+    public static String vararg(Object... i) {
+        return "vararg_" + i.length;
+    }
+
     // simple method
     public String foo(long i) {
         return "foo1_" + i;

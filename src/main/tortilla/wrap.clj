@@ -167,7 +167,11 @@
     `(~(tagged `[~@arg-vec] ret)
       ~(if (and (zero? arity)
                 (= 1 (count members)))
-         `(~(member-invocation (first members)))
+         (let [member (first members)]
+           (if (member-varargs? member)
+             `(~(member-invocation member) ~(tagged-local `(into-array ~(vararg-type member) [])
+                                                          (array-class (vararg-type member))))
+             `(~(member-invocation member))))
          `(cond
             ~@(mapcat
                (fn [member]
@@ -276,15 +280,20 @@
                 variadics []
                 results []
                 last-arity -1]
-           (if (nil? arity) ;; no more members, generate variadic form if necessary
+           (if (nil? arity)
+             ;; no more members so return, generating variadic form if necessary
              (if (seq variadics)
                (conj results (variadic-wrapper-form last-arity variadics opts))
                results)
-             (if (and (seq variadics) (> arity (inc last-arity)))
+             ;; there are more members, so continue
+             (if (and (> arity (inc last-arity))
+                      (seq variadics))
+               ;; arity increase > 1, and we have varargs, so generate intermediate arity form
                (recur [[arity membs] more]
                       variadics
                       (conj results (arity-wrapper-form (inc last-arity) [] variadics opts))
                       (inc last-arity))
+               ;; else generate form for the next set of members
                (let [{vararg true fixarg false} (group-by member-varargs? membs)
                      variadics (into variadics vararg)]
                  (recur more
