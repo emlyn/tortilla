@@ -64,7 +64,7 @@
     (is (= "<null>"
            (hexy nil))))
 
-  #_(testing "Can pass in null for object parameters"
+  (testing "Can pass in null for object parameters"
     (is (= "<null>"
            (hexy nil))))
 
