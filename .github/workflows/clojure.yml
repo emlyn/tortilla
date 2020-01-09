@@ -21,6 +21,11 @@ jobs:
     - name: Install dependencies
       run: lein with-profile +clj-kondo,+kaocha deps
 
+    - name: Run reflection check
+      run: |
+        lein check 2>&1 | tee check.out
+        ! grep 'Reflection warning, tortilla/' check.out
+
     - name: Run lint check
       run: lein lint
 

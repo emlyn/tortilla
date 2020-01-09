@@ -21,6 +21,8 @@
   :aliases
   {"run" ["with-profile" "+cli" "run"]
 
+   "check" ["with-profile" "+checks" "check"]
+
    "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]
    "lint" ["clj-kondo" "--lint" "src"]
 
@@ -30,6 +32,11 @@
   :profiles
   {:provided
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
+
+   :checks
+   {:global-vars {*warn-on-reflection* true
+                  *unchecked-math* :warn-on-boxed}
+    :source-paths ["src/test"]}
 
    :cli
    {:dependencies [[org.clojure/tools.cli "0.4.2"]
