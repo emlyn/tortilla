@@ -157,6 +157,19 @@
           (str "Unrecognised types for " name ": "
                (str/join ", " (map (comp class-name type) args))))))
 
+(defn member-invocation
+  [member args]
+  `(~(member-symbol member)
+    ~@(map (fn [sym ^Class klz]
+             (tagged-local sym klz))
+           (take (parameter-count member) args)
+           (parameter-types member))
+    ~@(when (member-varargs? member)
+        [(tagged-local `(into-array ~(vararg-type member)
+                                    ~(subvec args
+                                             (parameter-count member)))
+                       (array-class (vararg-type member)))])))
+
 ;; Generate form for one arity of a member
 (defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
