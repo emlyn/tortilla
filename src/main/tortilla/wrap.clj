@@ -22,7 +22,9 @@
     (.getComponentType ^Class (last (.getParameterTypes member)))))
 
 (defn class-name [^Class klazz]
-  (.getName klazz))
+  (if (nil? klazz)
+    "nil"
+    (.getName klazz)))
 
 (defprotocol MemberInfo
   (member-name* [_])
