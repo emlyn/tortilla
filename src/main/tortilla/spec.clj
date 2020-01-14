@@ -4,8 +4,9 @@
             [clojure.core.specs.alpha :as cs]))
 
 (def example-classes
-  #{Object Number Integer Long Float Double Byte Boolean String Character
-    Void Math Class Process Package Enum Exception Thread System
+  #{Boolean/TYPE Byte/TYPE Short/TYPE Integer/TYPE Long/TYPE Float/TYPE Double/TYPE Character/TYPE
+    Void/TYPE Boolean Byte Short Integer Long Float Double Character Void
+    Object Number String Math Class Process Package Enum Exception Thread System
     java.io.File java.io.Reader java.io.Writer java.io.InputStream java.io.OutputStream
     java.math.BigDecimal java.math.BigInteger
     java.net.URI java.net.URL java.net.InetAddress java.nio.Buffer
@@ -18,7 +19,7 @@
                example-classes)))
 
 (def primitive-names
-  '#{byte short int long float double char boolean void})
+  '#{void boolean byte short int long float double char})
 
 (s/def ::class
   (s/with-gen
@@ -30,9 +31,10 @@
     (s/and simple-symbol?
            (s/or :prim primitive-names
                  :obj #(instance? Class (resolve %))))
-    #(s/gen (set (map (fn [^Class cls]
-                        (symbol (.getName cls)))
-                     example-classes)))))
+    #(s/gen (->> example-classes
+                 (remove w/primitive?)
+                 (map (comp symbol w/class-name))
+                 (set)))))
 
 (s/def ::member
   (s/with-gen
@@ -94,14 +96,14 @@
   :ret  string?)
 
 (s/fdef w/array-class
-  :args (s/cat :class ::class)
+  :args (s/cat :class (s/and ::class #(not= Void/TYPE %)))
   :ret  (s/and ::class
                #(.isArray ^Class %))
   :fn   #(= (.getComponentType ^Class (:ret %))
             (-> % :args :class)))
 
 (s/fdef w/ensure-boxed
-  :args (s/cat :klazz ::class)
+  :args (s/cat :klazz (s/and ::class #(not= % Void/TYPE)))
   :ret  simple-symbol?
   :fn   #(or ('#{java.lang.Long java.lang.Double
                  java.lang.Byte java.lang.Short java.lang.Integer
@@ -113,7 +115,8 @@
 (s/fdef w/ensure-boxed-long-double
   :args (s/cat :klazz ::class)
   :ret  simple-symbol?
-  :fn   #(or ('#{java.lang.Byte java.lang.Short java.lang.Integer
+  :fn   #(or ('#{java.lang.Object
+                 java.lang.Byte java.lang.Short java.lang.Integer
                  java.lang.Float java.lang.Character java.lang.Boolean}
               (-> % :ret))
              (= (-> % :ret name)
