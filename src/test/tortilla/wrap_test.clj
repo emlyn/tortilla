@@ -121,37 +121,36 @@
                             (foo tc "1" "2" "3" 4))))))
 
 (declare x-with-primitives)
-(deftest overloads-with-primitives
+(declare x-without-primitives)
+(deftest many-overloads
   (is (w/defwrapper TestClass {:prefix "x-"}))
-  (is (= "boolean_false" (x-with-primitives false)))
-  (is (= "char_x"        (x-with-primitives \x)))
-  (is (= "byte_120"      (x-with-primitives (first (.getBytes "x")))))
-  (is (= "short_99"      (x-with-primitives (short 99))))
-  (is (= "int_88"        (x-with-primitives (int 88))))
-  (is (= "long_77"       (x-with-primitives 77)))
-  (is (= "float_2.5"     (x-with-primitives (float 2.5))))
-  (is (= "double_3.5"    (x-with-primitives 3.5)))
-  (is (= "String_z"      (x-with-primitives "z")))
-  (is (thrown-with-msg?  IllegalArgumentException
-                         #"Unrecognised types for tortilla.TestClass.withPrimitives"
-                         (x-with-primitives :oops)))
-  (is (= "String_<null>" (x-with-primitives nil))))
-
-(declare y-without-primitives)
-(deftest overloads-without-primitives
-  (is (w/defwrapper TestClass {:prefix "y-"}))
-  (is (= "Boolean_false" (y-without-primitives false)))
-  (is (= "Character_x"   (y-without-primitives \x)))
-  (is (= "Byte_120"      (y-without-primitives (first (.getBytes "x")))))
-  (is (= "Short_99"      (y-without-primitives (short 99))))
-  (is (= "Integer_88"    (y-without-primitives (int 88))))
-  (is (= "Long_77"       (y-without-primitives 77)))
-  (is (= "Float_2.5"     (y-without-primitives (float 2.5))))
-  (is (= "Double_3.5"    (y-without-primitives 3.5)))
-  (is (= "String_z"      (y-without-primitives "z")))
-  (is (thrown-with-msg?  IllegalArgumentException
-                         #"Unrecognised types for tortilla.TestClass.withoutPrimitives"
-                         (y-without-primitives :oops))))
+  (testing "With primitives"
+    (is (= "boolean_1" (x-with-primitives false)))
+    (is (= "char_1"    (x-with-primitives \x)))
+    (is (= "byte_1"    (x-with-primitives (first (.getBytes "x")))))
+    (is (= "short_1"   (x-with-primitives (short 99))))
+    (is (= "int_1"     (x-with-primitives (int 88))))
+    (is (= "long_1"    (x-with-primitives 77)))
+    (is (= "float_1"   (x-with-primitives (float 2.5))))
+    (is (= "double_1"  (x-with-primitives 3.5)))
+    (is (= "String_1"  (x-with-primitives "z")))
+    (is (= "String_1"  (x-with-primitives nil)))
+    (is (thrown-with-msg? IllegalArgumentException
+                          #"Unrecognised types for tortilla.TestClass.withPrimitives"
+                          (x-with-primitives :oops))))
+  (testing "Without primitives"
+    (is (= "Boolean_1"   (x-without-primitives false)))
+    (is (= "Character_1" (x-without-primitives \x)))
+    (is (= "Byte_1"      (x-without-primitives (first (.getBytes "x")))))
+    (is (= "Short_1"     (x-without-primitives (short 99))))
+    (is (= "Integer_1"   (x-without-primitives (int 88))))
+    (is (= "Long_1"      (x-without-primitives 77)))
+    (is (= "Float_1"     (x-without-primitives (float 2.5))))
+    (is (= "Double_1"    (x-without-primitives 3.5)))
+    (is (= "String_1"    (x-without-primitives "z")))
+    (is (thrown-with-msg? IllegalArgumentException
+                          #"Unrecognised types for tortilla.TestClass.withoutPrimitives"
+                          (x-without-primitives :oops)))))
 
 (declare tortilla-string-format)
 (declare tortilla-exception-exception)
