@@ -103,16 +103,21 @@
 (s/fdef w/ensure-boxed
   :args (s/cat :klazz ::class)
   :ret  simple-symbol?
-  :fn   #(or ('#{java.lang.Byte java.lang.Short java.lang.Integer
-                 java.lang.Long java.lang.Float java.lang.Double
-                 java.lang.Character java.lang.Boolean}
+  :fn   #(or ('#{java.lang.Long java.lang.Double
+                 java.lang.Byte java.lang.Short java.lang.Integer
+                 java.lang.Float java.lang.Character java.lang.Boolean}
               (-> % :ret))
              (= (-> % :ret name)
                 (-> % :args :klazz w/class-name))))
 
 (s/fdef w/ensure-boxed-long-double
-  :args (s/cat :cls ::class)
-  :ret  simple-symbol?)
+  :args (s/cat :klazz ::class)
+  :ret  simple-symbol?
+  :fn   #(or ('#{java.lang.Byte java.lang.Short java.lang.Integer
+                 java.lang.Float java.lang.Character java.lang.Boolean}
+              (-> % :ret))
+             (= (-> % :ret name)
+                (-> % :args :klazz w/class-name))))
 
 (s/fdef w/tagged
   :args (s/cat :value (s/or :sym simple-symbol?
