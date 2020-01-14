@@ -41,6 +41,7 @@
    :cli
    {:dependencies [[org.clojure/tools.cli "0.4.2"]
                    [orchestra "2019.02.06-1"]
+                   [expound "0.8.4"]
                    [fipp "0.6.22"]
                    [com.cemerick/pomegranate "1.1.0"]]
     :source-paths ["src/cli"]

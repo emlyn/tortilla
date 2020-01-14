@@ -1,9 +1,11 @@
 (ns tortilla.main
   (:require [clojure.edn :as edn]
+            [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
             [cemerick.pomegranate :refer [add-dependencies]]
             [cemerick.pomegranate.aether :refer [maven-central]]
+            [expound.alpha :as expound]
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
             [tortilla.wrap :as w :refer [defwrapper]]
@@ -169,7 +171,8 @@
     (doseq [cls (:class options)]
       (println "\n;; ====" cls "====")
       (binding [*filter-in* (:include options)
-                *filter-out* (:exclude options)]
+                *filter-out* (:exclude options)
+                s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
         (if (:members options)
           (doseq [member (w/class-members cls {:filter-fn filter-fn})]
             (println (member-str member)))
