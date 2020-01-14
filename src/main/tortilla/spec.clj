@@ -102,6 +102,14 @@
   :fn   #(= (.getComponentType ^Class (:ret %))
             (-> % :args :class)))
 
+(s/fdef w/type-symbol
+  :args (s/cat :klazz (s/and ::class #(not= % Void/TYPE)))
+  :ret  symbol?
+  :fn   #(if (-> % :args :klazz w/primitive?)
+           (= "TYPE" (-> % :ret name))
+           (= (-> % :ret name)
+              (-> % :args :klazz w/class-name))))
+
 (s/fdef w/ensure-boxed
   :args (s/cat :klazz (s/and ::class #(not= % Void/TYPE)))
   :ret  simple-symbol?

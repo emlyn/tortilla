@@ -99,6 +99,25 @@
 (defn array-class [klz]
   (class (into-array klz [])))
 
+(defn primitive?
+  [^Class cls]
+  (.isPrimitive cls))
+
+(defn type-symbol
+  [t]
+  (if (primitive? t)
+    (case (class-name t)
+      "byte"    'java.lang.Byte/TYPE
+      "short"   'java.lang.Short/TYPE
+      "int"     'java.lang.Integer/TYPE
+      "long"    'java.lang.Long/TYPE
+      "float"   'java.lang.Float/TYPE
+      "double"  'java.lang.Double/TYPE
+      "char"    'java.lang.Character/TYPE
+      "boolean" 'java.lang.Boolean/TYPE
+      (throw (IllegalArgumentException. (str "Unrecognised type: " t))))
+    (-> t class-name symbol)))
+
 (defn ensure-boxed [t]
   (let [sym (symbol (class-name t))]
     (get '{byte java.lang.Byte
@@ -140,10 +159,6 @@
       :else
       (vary-meta value assoc :tag tag))))
 
-(defn primitive?
-  [^Class cls]
-  (.isPrimitive cls))
-
 (defn compatible-type?
   [^Class typ val]
   (or (instance? (resolve (ensure-boxed typ)) val)
@@ -157,8 +172,28 @@
           (str "Unrecognised types for " name ": "
                (str/join ", " (map (comp class-name type) args))))))
 
+(defn args-compatible
+  [id coercer arg-types args]
+  (when-let [result (reduce (fn [r [arg typ]]
+                              (let [coerced (if coercer
+                                              (coercer arg (resolve (ensure-boxed typ)))
+                                              arg)]
+                                (if (compatible-type? typ coerced)
+                                  (conj r coerced)
+                                  (reduced nil))))
+                            []
+                            (map vector
+                                 args
+                                 (concat arg-types (repeat (last arg-types)))))]
+    [id result]))
+
+(defn best-match
+  [args matches]
+  (or (first (remove nil? matches))
+      [-1 args]))
+
 (defn member-invocation
-  [member args]
+  [member args & [more-arg]]
   `(~(member-symbol member)
     ~@(map (fn [sym ^Class klz]
              (tagged-local sym klz))
@@ -166,8 +201,10 @@
            (parameter-types member))
     ~@(when (member-varargs? member)
         [(tagged-local `(into-array ~(vararg-type member)
-                                    ~(subvec args
-                                             (parameter-count member)))
+                                    ~(if more-arg
+                                       `(into ~(subvec args (parameter-count member))
+                                              ~more-arg)
+                                       (subvec args (parameter-count member))))
                        (array-class (vararg-type member)))])))
 
 ;; Generate form for one arity of a member
@@ -180,105 +217,50 @@
     `(~(tagged `[~@arg-vec] ret)
       ~(if (and (zero? arity)
                 (= 1 (count members)))
-         (let [member (first members)]
-           (if (member-varargs? member)
-             `(~(member-symbol member) ~(tagged-local `(into-array ~(vararg-type member) [])
-                                                      (array-class (vararg-type member))))
-             `(~(member-symbol member))))
-         `(cond
-            ~@(mapcat
-               (fn [member]
-                 `[(and ~@(map (fn [sym ^Class klz]
-                                 `(compatible-type? ~klz
-                                                    ~(if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed klz))
-                                                       sym)))
-                               arg-vec
-                               (parameter-types member)))
-                   (~(member-symbol member)
-                    ~@(map (fn [sym ^Class klz]
-                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                           arg-vec
-                           (parameter-types member)))])
-               uniadics)
-            ~@(mapcat
-               (fn [member]
-                 `[(and ~@(map (fn [sym ^Class klz]
-                                 `(compatible-type? ~klz
-                                                    ~(if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed klz))
-                                                       sym)))
-                               arg-vec
-                               (parameter-types member)))
-                   (~(member-symbol member)
-                    ~@(map (fn [sym ^Class klz]
-                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                           (take (parameter-count member) arg-vec)
-                           (parameter-types member))
-                    ~(tagged-local `(into-array ~(vararg-type member)
-                                                ~(mapv (fn [sym]
-                                                         (if coerce
-                                                           `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
-                                                           sym))
-                                                       (drop (parameter-count member) arg-vec)))
-
-                                   (array-class (vararg-type member))))])
-               variadics)
-            :else (type-error ~(str (-> members first member-class class-name) \.
-                                    (-> members first member-name))
-                              ~@arg-vec))))))
+         (member-invocation (first members) [])
+         `(let [[id# ~arg-vec]
+                (best-match ~arg-vec
+                            [~@(map-indexed (fn [id member]
+                                              (let [arg-types (->> (parameter-types member)
+                                                                   (take arity)
+                                                                   (mapv type-symbol))]
+                                                `(args-compatible ~id ~coerce ~arg-types ~arg-vec)))
+                                            members)])]
+            (case (long id#)
+              ~@(mapcat (fn [id mem]
+                          [id (member-invocation mem arg-vec)])
+                        (range)
+                        members)
+              (type-error ~(str (-> members first member-class class-name) \.
+                                (-> members first member-name))
+                          ~@arg-vec)))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
-  (let [more-arg (gensym "more_")
-        arg-vec (into (mapv #(gensym (str "p" % "_")) (range min-arity))
-                      ['& more-arg])
+  (let [fix-args (mapv #(gensym (str "p" % "_")) (range min-arity))
+        more-arg (gensym "more_")
+        arg-vec (conj fix-args '& more-arg)
         ret (if (apply = (map return-type members))
               (return-type (first members))
               java.lang.Object)]
     `(~(tagged `[~@arg-vec] ret)
-      (cond
-        ~@(mapcat
-           (fn [member]
-             `[(and ~@(map (fn [sym ^Class klz]
-                             `(compatible-type? ~klz
-                                                ~(if coerce
-                                                   `(~coerce ~sym ~(ensure-boxed klz))
-                                                   sym)))
-                           (take min-arity arg-vec)
-                           (parameter-types member))
-                    (every? (partial compatible-type? ~(vararg-type member))
-                            ~(if coerce
-                               `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
-                                     ~more-arg)
-                               more-arg)))
-               (~(member-symbol member)
-                ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce
-                                         `(~coerce ~sym ~(ensure-boxed klz))
-                                         sym)
-                                       klz))
-                       (take (parameter-count member) arg-vec)
-                       (parameter-types member))
-                ~(tagged-local `(into-array ~(vararg-type member)
-                                            (into ~(mapv (fn [sym]
-                                                           (if coerce
-                                                             `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
-                                                             sym))
-                                                         (subvec arg-vec
-                                                                 (parameter-count member)
-                                                                 min-arity))
-                                                  ~(if coerce
-                                                     `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
-                                                          ~more-arg)
-                                                    more-arg)))
-                               (array-class (vararg-type member))))])
-           members)
-        :else (apply type-error
-                     ~(str (-> members first member-class class-name) \.
-                           (-> members first member-name))
-                     ~@(take min-arity arg-vec)
-                     ~more-arg)))))
+      (let [[id# ~arg-vec]
+            (best-match (into ~fix-args ~more-arg)
+                        [~@(map-indexed (fn [id member]
+                                          (let [arg-types (->> (parameter-types member)
+                                                               (take (inc min-arity))
+                                                               (mapv type-symbol))]
+                                            `(args-compatible ~id ~coerce ~arg-types (into ~fix-args ~more-arg))))
+                                        members)])]
+        (case (long id#)
+          ~@(mapcat (fn [id mem]
+                      [id (member-invocation mem fix-args more-arg)])
+                    (range)
+                    members)
+          (apply type-error ~(str (-> members first member-class class-name) \.
+                                  (-> members first member-name))
+                 ~@fix-args
+                 ~more-arg))))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]

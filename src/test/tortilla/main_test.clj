@@ -38,9 +38,9 @@
 
 (deftest main-test
   (let [coerce-check
-        #"(?m)\(tortilla.wrap/compatible-type[?] java.lang.Number \(#'tortilla.main/coerce p[0-9_]+ java.lang.Number\)\)"
+        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ #'tortilla.main/coerce \[java.lang.Number\] \[p0_[0-9]+\]\)"
         non-coerce-check
-        #"(?m)\(tortilla.wrap/compatible-type[?] java.lang.Number p[0-9_]+\)"]
+        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ nil \[java.lang.Number\] \[p0_[0-9]+\]\)"]
     (testing "Listing members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "Number" "--members"))]
         (is (re-find #"(?m)^;; =+ Number =+$" stdout))

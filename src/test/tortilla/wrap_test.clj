@@ -41,6 +41,12 @@
   (is (thrown? IllegalArgumentException (w/compile-time-fn #'unbound-var)))
   (is (thrown? IllegalArgumentException (w/compile-time-fn '(fn [x] (inc x))))))
 
+(deftest type-symbol-test
+  (is (= 'java.lang.Integer/TYPE (w/type-symbol Integer/TYPE)))
+  (is (= 'java.lang.Integer      (w/type-symbol Integer)))
+  (is (thrown-with-msg? IllegalArgumentException #"Unrecognised type: void"
+                        (w/type-symbol Void/TYPE))))
+
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
     (is (w/defwrapper TestClass {:coerce coerce})))
