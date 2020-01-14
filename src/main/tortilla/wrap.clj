@@ -2,8 +2,6 @@
   (:require [clojure.string :as str])
   (:import [java.lang.reflect Executable Constructor Method Modifier]))
 
-(set! *warn-on-reflection* true)
-
 (defn class-methods [^Class klazz]
   (seq (.getMethods klazz)))
 
