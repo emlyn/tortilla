@@ -154,19 +154,23 @@
 (declare tortilla-file-get-name)
 (deftest more-types
   (testing "Instantiating some more wrappers for better coverage"
-    (is (w/defwrapper String       {:prefix "tortilla-string-"}))
-    (is (= "foo bar 42 0.000001"
-           (tortilla-string-format "foo %s %d %f" "bar" 42 1e-6)))
-    (is (w/defwrapper Exception    {:prefix "tortilla-exception-"}))
-    (is (= "this is a message"
-           (-> "this is a message"
-               tortilla-exception-exception
-               tortilla-exception-get-message)))
-    (is (w/defwrapper System       {:prefix "tortilla-system-"}))
-    (is (= "value"
-           (tortilla-system-get-property "tortilla#a.property-that_doesNot$exist" "value")))
-    (is (w/defwrapper java.io.File {:prefix "tortilla-file-"}))
-    (is (= "some_file"
-           (-> "/path/to/some_file"
-               tortilla-file-file
-               tortilla-file-get-name)))))
+    (testing "java.lang.String.format"
+      (is (w/defwrapper String       {:prefix "tortilla-string-"}))
+      (is (= "foo bar 42 0.000001"
+             (tortilla-string-format "foo %s %d %f" "bar" 42 1e-6))))
+    (testing "java.lang.Exception.getMessage"
+      (is (w/defwrapper Exception    {:prefix "tortilla-exception-"}))
+      (is (= "this is a message"
+             (-> "this is a message"
+                 tortilla-exception-exception
+                 tortilla-exception-get-message))))
+    (testing "java.lang.System.getProperty"
+      (is (w/defwrapper System       {:prefix "tortilla-system-"}))
+      (is (= "value"
+             (tortilla-system-get-property "tortilla#a.property-that_doesNot$exist" "value"))))
+    (testing "java.io.File.getName"
+      (is (w/defwrapper java.io.File {:prefix "tortilla-file-"}))
+      (is (= "some_file"
+             (-> "/path/to/some_file"
+                 tortilla-file-file
+                 tortilla-file-get-name))))))
