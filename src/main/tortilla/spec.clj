@@ -73,7 +73,7 @@
   :args (s/cat :member ::member)
   :ret  string?)
 
-(s/fdef w/member-invocation
+(s/fdef w/member-symbol
   :args (s/cat :member ::member)
   :ret  symbol?)
 

@@ -26,7 +26,7 @@
 
 (defprotocol MemberInfo
   (member-name* [_])
-  (member-invocation* [_])
+  (member-symbol* [_])
   ;; Minimum number of parameters a member accepts. It could take more if it has varargs
   (parameter-count* [_])
   ;; Possibly infinite (if member has varargs) list of parameter types accepted by member
@@ -37,8 +37,8 @@
 (defn member-name [m]
   (member-name* m))
 
-(defn member-invocation [m]
-  (member-invocation* m))
+(defn member-symbol [m]
+  (member-symbol* m))
 
 (defn parameter-count [m]
   (parameter-count* m))
@@ -53,7 +53,7 @@
   Method
   (member-name* [^Method m]
     (.getName m))
-  (member-invocation* [^Method m]
+  (member-symbol* [^Method m]
     (if (member-static? m)
       (symbol (-> m member-class class-name) (member-name m))
       (symbol (str "." (member-name m)))))
@@ -74,7 +74,7 @@
   Constructor
   (member-name* [^Constructor c]
     (-> c member-class .getSimpleName))
-  (member-invocation* [^Constructor c]
+  (member-symbol* [^Constructor c]
     (-> c member-class class-name (str ".") symbol))
   (parameter-count* [^Constructor c]
     (cond-> (.getParameterCount c)
@@ -167,9 +167,9 @@
                 (= 1 (count members)))
          (let [member (first members)]
            (if (member-varargs? member)
-             `(~(member-invocation member) ~(tagged-local `(into-array ~(vararg-type member) [])
-                                                          (array-class (vararg-type member))))
-             `(~(member-invocation member))))
+             `(~(member-symbol member) ~(tagged-local `(into-array ~(vararg-type member) [])
+                                                      (array-class (vararg-type member))))
+             `(~(member-symbol member))))
          `(cond
             ~@(mapcat
                (fn [member]
@@ -180,7 +180,7 @@
                                                        sym)))
                                arg-vec
                                (parameter-types member)))
-                   (~(member-invocation member)
+                   (~(member-symbol member)
                     ~@(map (fn [sym ^Class klz]
                              (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
                            arg-vec
@@ -195,7 +195,7 @@
                                                        sym)))
                                arg-vec
                                (parameter-types member)))
-                   (~(member-invocation member)
+                   (~(member-symbol member)
                     ~@(map (fn [sym ^Class klz]
                              (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
                            (take (parameter-count member) arg-vec)
@@ -237,7 +237,7 @@
                                `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
                                      ~more-arg)
                                more-arg)))
-               (~(member-invocation member)
+               (~(member-symbol member)
                 ~@(map (fn [sym ^Class klz]
                          (tagged-local (if coerce
                                          `(~coerce ~sym ~(ensure-boxed klz))
