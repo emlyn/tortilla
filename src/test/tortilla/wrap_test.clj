@@ -1,6 +1,7 @@
 (ns tortilla.wrap-test
   (:require [clojure.test :refer [deftest is testing]]
-            [tortilla.wrap :as w])
+            [tortilla.wrap :as w]
+            [tortilla.spec])
   (:import [tortilla TestClass]))
 
 ;; These will be defined later by defwrapper, declare them now to keep the linter happy:
