@@ -222,10 +222,13 @@
                   (return-type (first members))
                   java.lang.Object)]
     `(~(tagged `[~@arg-vec] ret)
-      ~(if-let [mem (and (= 1 (count members))
-                         (first members))]
-         (if (zero? arity)
-           (member-invocation mem [])
+      ~(if (zero? arity)
+         ;; Even though there may be more than one members compatible with zero args
+         ;; (e.g. diff. typed varargs) there is no way to differentiate them on argument types,
+         ;; so just emit a call and let the compiler deal with it:
+         (member-invocation (first members) [])
+         (if-let [mem (and (= 1 (count members))
+                           (first members))]
            `(if-let [[~'_ ~@arg-vec] (args-compatible
                                       0 ~arg-vec
                                       ~(->> mem parameter-types (take arity) (mapv type-symbol))
@@ -233,25 +236,25 @@
               ~(member-invocation mem arg-vec)
               (type-error ~(str (-> mem member-class class-name) \.
                                 (-> mem member-name))
-                          ~@arg-vec)))
-         `(let [~arg-sym ~arg-vec
-                [id# ~@arg-vec]
-                (select-overload
-                 ~arg-sym
-                 [~@(map-indexed (fn [id member]
-                                   (let [arg-types (->> (parameter-types member)
-                                                        (take arity)
-                                                        (mapv type-symbol))]
-                                     `(args-compatible ~id ~arg-sym ~arg-types ~@(when coerce [coerce]))))
-                                 members)])]
-            (case (long id#)
-              ~@(mapcat (fn [id mem]
-                          [id (member-invocation mem arg-vec)])
-                        (range)
-                        members)
-              (type-error ~(str (-> members first member-class class-name) \.
-                                (-> members first member-name))
-                          ~@arg-vec)))))))
+                          ~@arg-vec))
+           `(let [~arg-sym ~arg-vec
+                  [id# ~@arg-vec]
+                  (select-overload
+                   ~arg-sym
+                   [~@(map-indexed (fn [id member]
+                                     (let [arg-types (->> (parameter-types member)
+                                                          (take arity)
+                                                          (mapv type-symbol))]
+                                       `(args-compatible ~id ~arg-sym ~arg-types ~@(when coerce [coerce]))))
+                                   members)])]
+              (case (long id#)
+                ~@(mapcat (fn [id mem]
+                            [id (member-invocation mem arg-vec)])
+                          (range)
+                          members)
+                (type-error ~(str (-> members first member-class class-name) \.
+                                  (-> members first member-name))
+                            ~@arg-vec))))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
