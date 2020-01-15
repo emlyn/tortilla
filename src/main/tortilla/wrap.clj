@@ -165,7 +165,7 @@
       (and (nil? val)
            (not (primitive? typ)))))
 
-(defn type-error
+(defn ^:no-gen type-error
   [name & args]
   (throw (IllegalArgumentException.
           ^String

@@ -1,6 +1,7 @@
 (ns tortilla.spec
   (:require [tortilla.wrap :as w]
             [clojure.spec.alpha :as s]
+            [clojure.test.check.generators :as gen]
             [clojure.core.specs.alpha :as cs]))
 
 (def example-classes
@@ -40,6 +41,18 @@
   (s/with-gen
     #(instance? java.lang.reflect.Executable %)
     #(s/gen example-members)))
+
+(s/def ::coercer
+  (s/with-gen
+    fn?
+    #(s/gen #{(fn nop-coercer [val _typ]
+                val)
+              (fn int-coercer [val typ]
+                (if (and (number? val) (= typ Integer))
+                  (try (int val)
+                       (catch IllegalArgumentException _
+                         val))
+                  val))})))
 
 (s/fdef w/class-methods
   :args (s/cat :class ::class)
@@ -102,6 +115,10 @@
   :fn   #(= (.getComponentType ^Class (:ret %))
             (-> % :args :class)))
 
+(s/fdef w/primitive?
+  :args (s/cat :klazz ::class)
+  :ret  boolean?)
+
 (s/fdef w/type-symbol
   :args (s/cat :klazz (s/and ::class #(not= % Void/TYPE)))
   :ret  symbol?
@@ -142,6 +159,59 @@
                :tag ::class)
   :ret (s/or :long-double (s/and seq? #(-> % first #{`long `double}))
              :other #(->> % meta :tag)))
+
+(s/fdef w/compatible-type?
+  :args (s/cat :klazz ::class
+               :value any?)
+  :ret boolean?)
+
+(s/fdef w/type-error
+  :args (s/cat :name string?
+               :args (s/* any?))
+  :ret (constantly false))
+
+(s/fdef w/args-compatible
+  :args (s/cat :id nat-int?
+               :args (s/coll-of any? :kind vector? :min-count 1)
+               :types (s/coll-of ::class :kind vector? :min-count 1)
+               :coercer (s/? ::coercer))
+  :ret (s/nilable (s/and (s/coll-of any? :kind vector? :min-count 2)
+                         #(nat-int? (first %))))
+  :fn #(or (-> % :ret nil?)
+           (and (= (-> % :args :id)
+                   (-> % :ret first))
+                (= (-> % :args :args count)
+                   (-> % :ret count dec)))))
+
+(s/fdef w/select-overload
+  :args (s/with-gen
+          (s/cat :args (s/coll-of any? :kind any? :min-count 1)
+                 :matches (s/coll-of (s/and (s/coll-of any? :kind vector? :min-count 2)
+                                            #(nat-int? (first %)))
+                                     :kind vector?))
+          #(gen/let [len (gen/fmap inc gen/nat)]
+             (gen/tuple (gen/vector gen/simple-type len)
+                        (gen/fmap (fn [vecs]
+                                    (mapv (fn [id v]
+                                            (into [id] v))
+                                          (range)
+                                          vecs))
+                                  (gen/vector (gen/vector gen/simple-type len)
+                                              0 5)))))
+  :ret (s/and (s/coll-of any? :kind vector?)
+              #(int? (first %)))
+  :fn (s/or :no-match (s/and #(= -1 (-> % :ret first))
+                             #(= (-> % :args :args)
+                                 (-> % :ret rest)))
+            :match (s/and #(-> % :ret first nat-int?)
+                          #(some (partial = (:ret %))
+                                 (-> % :args :matches)))))
+
+(s/fdef w/member-invocation
+  :args (s/cat :member ::member
+               :args (s/coll-of simple-symbol? :kind vector?)
+               :more (s/? any?))
+  :ret (s/and seq? #(-> % first symbol?)))
 
 (s/fdef w/arity-wrapper-form
   :args (s/cat :arity nat-int?
