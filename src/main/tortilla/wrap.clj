@@ -210,6 +210,7 @@
 ;; Generate form for one arity of a member
 (defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
+        arg-sym (gensym "args_")
         members (concat uniadics variadics)
         ret     (if (apply = (map return-type members))
                   (return-type (first members))
@@ -226,13 +227,14 @@
               (type-error ~(str (-> mem member-class class-name) \.
                                 (-> mem member-name))
                           ~@arg-vec)))
-         `(let [[id# ~arg-vec]
-                (best-match ~arg-vec
+         `(let [~arg-sym ~arg-vec
+                [id# ~arg-vec]
+                (best-match ~arg-sym
                             [~@(map-indexed (fn [id member]
                                               (let [arg-types (->> (parameter-types member)
                                                                    (take arity)
                                                                    (mapv type-symbol))]
-                                                `(args-compatible ~id ~coerce ~arg-types ~arg-vec)))
+                                                `(args-compatible ~id ~coerce ~arg-types ~arg-sym)))
                                             members)])]
             (case (long id#)
               ~@(mapcat (fn [id mem]
@@ -247,6 +249,7 @@
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
   (let [fix-args (mapv #(gensym (str "p" % "_")) (range min-arity))
         more-arg (gensym "more_")
+        arg-sym (gensym "args_")
         arg-vec (conj fix-args '& more-arg)
         ret (if (apply = (map return-type members))
               (return-type (first members))
@@ -262,13 +265,14 @@
                                     (-> mem member-name))
                    ~@fix-args
                    ~more-arg))
-         `(let [[id# ~arg-vec]
-                (best-match (into ~fix-args ~more-arg)
+         `(let [~arg-sym (into ~fix-args ~more-arg)
+                [id# ~arg-vec]
+                (best-match ~arg-sym
                             [~@(map-indexed (fn [id member]
                                               (let [arg-types (->> (parameter-types member)
                                                                    (take (inc min-arity))
                                                                    (mapv type-symbol))]
-                                                `(args-compatible ~id ~coerce ~arg-types (into ~fix-args ~more-arg))))
+                                                `(args-compatible ~id ~coerce ~arg-types ~arg-sym)))
                                             members)])]
             (case (long id#)
               ~@(mapcat (fn [id mem]
