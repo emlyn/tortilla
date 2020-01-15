@@ -34,8 +34,7 @@
    {:dependencies [[org.clojure/clojure "1.10.1"]]}
 
    :checks
-   {:global-vars {*warn-on-reflection* true
-                  *unchecked-math* :warn-on-boxed}
+   {:global-vars {*warn-on-reflection* true}
     :source-paths ["src/test"]}
 
    :cli
