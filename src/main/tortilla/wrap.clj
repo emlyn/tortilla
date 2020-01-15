@@ -173,24 +173,23 @@
                (str/join ", " (map (comp class-name type) args))))))
 
 (defn args-compatible
-  [id coercer arg-types args]
-  (when-let [result (reduce (fn [r [arg typ]]
-                              (let [coerced (if coercer
-                                              (coercer arg (resolve (ensure-boxed typ)))
-                                              arg)]
-                                (if (compatible-type? typ coerced)
-                                  (conj r coerced)
-                                  (reduced nil))))
-                            []
-                            (map vector
-                                 args
-                                 (concat arg-types (repeat (last arg-types)))))]
-    [id result]))
+  [id args arg-types coercer]
+  (reduce (fn [r [arg typ]]
+            (let [coerced (if coercer
+                            (coercer arg (resolve (ensure-boxed typ)))
+                            arg)]
+              (if (compatible-type? typ coerced)
+                (conj r coerced)
+                (reduced nil))))
+          [id]
+          (map vector
+               args
+               (concat arg-types (repeat (last arg-types))))))
 
-(defn best-match
+(defn select-overload
   [args matches]
   (or (first (remove nil? matches))
-      [-1 args]))
+      (into [-1] args)))
 
 (defn member-invocation
   [member args & [more-arg]]
@@ -220,22 +219,24 @@
                          (first members))]
          (if (zero? arity)
            (member-invocation mem [])
-           `(if-let [[~'_ ~arg-vec] (args-compatible 0 ~coerce
-                                                     ~(->> mem parameter-types (take arity) (mapv type-symbol))
-                                                     ~arg-vec)]
+           `(if-let [[~'_ ~@arg-vec] (args-compatible
+                                      0 ~arg-vec
+                                      ~(->> mem parameter-types (take arity) (mapv type-symbol))
+                                      ~coerce)]
               ~(member-invocation mem arg-vec)
               (type-error ~(str (-> mem member-class class-name) \.
                                 (-> mem member-name))
                           ~@arg-vec)))
          `(let [~arg-sym ~arg-vec
-                [id# ~arg-vec]
-                (best-match ~arg-sym
-                            [~@(map-indexed (fn [id member]
-                                              (let [arg-types (->> (parameter-types member)
-                                                                   (take arity)
-                                                                   (mapv type-symbol))]
-                                                `(args-compatible ~id ~coerce ~arg-types ~arg-sym)))
-                                            members)])]
+                [id# ~@arg-vec]
+                (select-overload
+                 ~arg-sym
+                 [~@(map-indexed (fn [id member]
+                                   (let [arg-types (->> (parameter-types member)
+                                                        (take arity)
+                                                        (mapv type-symbol))]
+                                     `(args-compatible ~id ~arg-sym ~arg-types ~coerce)))
+                                 members)])]
             (case (long id#)
               ~@(mapcat (fn [id mem]
                           [id (member-invocation mem arg-vec)])
@@ -257,23 +258,25 @@
     `(~(tagged `[~@arg-vec] ret)
       ~(if-let [mem (and (= 1 (count members))
                          (first members))]
-         `(if-let [[~'_ ~arg-vec] (args-compatible 0 ~coerce
-                                                   ~(->> mem parameter-types (take (inc min-arity)) (mapv type-symbol))
-                                                   (into ~fix-args ~more-arg))]
+         `(if-let [[~'_ ~@arg-vec] (args-compatible
+                                    0 (into ~fix-args ~more-arg)
+                                    ~(->> mem parameter-types (take (inc min-arity)) (mapv type-symbol))
+                                    ~coerce)]
             ~(member-invocation mem fix-args more-arg)
             (apply type-error ~(str (-> mem member-class class-name) \.
                                     (-> mem member-name))
                    ~@fix-args
                    ~more-arg))
          `(let [~arg-sym (into ~fix-args ~more-arg)
-                [id# ~arg-vec]
-                (best-match ~arg-sym
-                            [~@(map-indexed (fn [id member]
-                                              (let [arg-types (->> (parameter-types member)
-                                                                   (take (inc min-arity))
-                                                                   (mapv type-symbol))]
-                                                `(args-compatible ~id ~coerce ~arg-types ~arg-sym)))
-                                            members)])]
+                [id# ~@arg-vec]
+                (select-overload
+                 ~arg-sym
+                 [~@(map-indexed (fn [id member]
+                                   (let [arg-types (->> (parameter-types member)
+                                                        (take (inc min-arity))
+                                                        (mapv type-symbol))]
+                                     `(args-compatible ~id ~arg-sym ~arg-types ~coerce)))
+                                 members)])]
             (case (long id#)
               ~@(mapcat (fn [id mem]
                           [id (member-invocation mem fix-args more-arg)])
