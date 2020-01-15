@@ -40,7 +40,7 @@
   (let [coerce-check
         #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\] #'tortilla.main/coerce\)"
         non-coerce-check
-        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\] nil\)"]
+        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\]\)"]
     (testing "Listing members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "Number" "--members"))]
         (is (re-find #"(?m)^;; =+ Number =+$" stdout))
