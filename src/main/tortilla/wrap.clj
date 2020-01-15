@@ -215,9 +215,17 @@
                   (return-type (first members))
                   java.lang.Object)]
     `(~(tagged `[~@arg-vec] ret)
-      ~(if (and (zero? arity)
-                (= 1 (count members)))
-         (member-invocation (first members) [])
+      ~(if-let [mem (and (= 1 (count members))
+                         (first members))]
+         (if (zero? arity)
+           (member-invocation mem [])
+           `(if-let [[~'_ ~arg-vec] (args-compatible 0 ~coerce
+                                                     ~(->> mem parameter-types (take arity) (mapv type-symbol))
+                                                     ~arg-vec)]
+              ~(member-invocation mem arg-vec)
+              (type-error ~(str (-> mem member-class class-name) \.
+                                (-> mem member-name))
+                          ~@arg-vec)))
          `(let [[id# ~arg-vec]
                 (best-match ~arg-vec
                             [~@(map-indexed (fn [id member]
@@ -244,23 +252,33 @@
               (return-type (first members))
               java.lang.Object)]
     `(~(tagged `[~@arg-vec] ret)
-      (let [[id# ~arg-vec]
-            (best-match (into ~fix-args ~more-arg)
-                        [~@(map-indexed (fn [id member]
-                                          (let [arg-types (->> (parameter-types member)
-                                                               (take (inc min-arity))
-                                                               (mapv type-symbol))]
-                                            `(args-compatible ~id ~coerce ~arg-types (into ~fix-args ~more-arg))))
-                                        members)])]
-        (case (long id#)
-          ~@(mapcat (fn [id mem]
-                      [id (member-invocation mem fix-args more-arg)])
-                    (range)
-                    members)
-          (apply type-error ~(str (-> members first member-class class-name) \.
-                                  (-> members first member-name))
-                 ~@fix-args
-                 ~more-arg))))))
+      ~(if-let [mem (and (= 1 (count members))
+                         (first members))]
+         `(if-let [[~'_ ~arg-vec] (args-compatible 0 ~coerce
+                                                   ~(->> mem parameter-types (take (inc min-arity)) (mapv type-symbol))
+                                                   (into ~fix-args ~more-arg))]
+            ~(member-invocation mem fix-args more-arg)
+            (apply type-error ~(str (-> mem member-class class-name) \.
+                                    (-> mem member-name))
+                   ~@fix-args
+                   ~more-arg))
+         `(let [[id# ~arg-vec]
+                (best-match (into ~fix-args ~more-arg)
+                            [~@(map-indexed (fn [id member]
+                                              (let [arg-types (->> (parameter-types member)
+                                                                   (take (inc min-arity))
+                                                                   (mapv type-symbol))]
+                                                `(args-compatible ~id ~coerce ~arg-types (into ~fix-args ~more-arg))))
+                                            members)])]
+            (case (long id#)
+              ~@(mapcat (fn [id mem]
+                          [id (member-invocation mem fix-args more-arg)])
+                        (range)
+                        members)
+              (apply type-error ~(str (-> members first member-class class-name) \.
+                                      (-> members first member-name))
+                     ~@fix-args
+                     ~more-arg)))))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
