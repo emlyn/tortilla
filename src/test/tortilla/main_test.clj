@@ -1,6 +1,14 @@
 (ns tortilla.main-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [tortilla.main :as m]))
+
+(use-fixtures
+  :once
+  (fn [test-fn]
+    ;; Ensure calling exit won't quit, but cause a test failure instead
+    (with-redefs [m/exit (fn [code message]
+                           (throw (Exception. (str "exit " code " " message))))]
+      (test-fn))))
 
 (deftest coercer-test
   (is (instance? Integer (m/coerce 42   Integer)))
@@ -26,14 +34,14 @@
   (testing "Non-option argument causes an error"
     (is (= 1 (:exit (m/validate-args ["invalid"])))))
   (testing "Valid options don't cause an error"
-    (is (= {:class ['Number 'String]
+    (is (= {:class ["java.lang.Number" "java.lang.String"]
             :metadata true
             :instrument true
             :coerce true
             :width 80
             :dep '[[foo "1.0"]
                    [bar/baz "2.0"]]}
-           (m/validate-args ["-c" "Number" "-c" "String" "-w" "80"
+           (m/validate-args ["-c" "java.lang.Number" "-c" "java.lang.String" "-w" "80"
                              "-d" "foo:1.0" "-d" "[bar/baz \"2.0\"]"])))))
 
 (deftest main-test
@@ -42,22 +50,22 @@
         non-coerce-check
         #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\]\)"]
     (testing "Listing members"
-      (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "Number" "--members"))]
-        (is (re-find #"(?m)^;; =+ Number =+$" stdout))
+      (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "java.lang.Number" "--members"))]
+        (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))))
     (testing "Filtering members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--members"
-                                          "-c" "Number" "-i" "longValue"))]
+                                          "-c" "java.lang.Number" "-i" "longValue"))]
         (is (re-find #"(?m)longValue\(java.lang.Number\):long" stdout))
         (is (not (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
       (let [stdout (with-out-str (m/-main "--no-instrument" "--members"
-                                          "-c" "Number" "-x" "longValue"))]
+                                          "-c" "java.lang.Number" "-x" "longValue"))]
         (is (not (re-find #"(?m)longValue\(java.lang.Number\):long" stdout)))
         (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200"
-                                          "-c" "Object" "-c" "java.lang.Number"))]
-        (is (re-find #"(?m)^;; =+ Object =+$" stdout))
+                                          "-c" "java.lang.Object" "-c" "java.lang.Number"))]
+        (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
@@ -65,8 +73,8 @@
         (is (not (re-find non-coerce-check stdout)))))
     (testing "Without coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-coerce"
-                                          "-w" "200" "-c" "Object" "-c" "java.lang.Number"))]
-        (is (re-find #"(?m)^;; =+ Object =+$" stdout))
+                                          "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
+        (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
@@ -76,4 +84,15 @@
       (let [stdout (with-out-str (m/-main "--no-instrument"
                                           "-d" "org.jblas:jblas:1.2.4"
                                           "-c" "org.jblas.ComplexDoubleMatrix"))]
-        (is (re-find #"(?m)^;; =+ org.jblas.ComplexDoubleMatrix =+$" stdout))))))
+        (is (re-find #"(?m)^;; =+ org.jblas.ComplexDoubleMatrix =+$" stdout))))
+    (testing "Invalid options quit with error"
+      (is (thrown-with-msg? Exception #"^exit 0 Usage: tortilla "
+                            (m/-main "-c" "java.lang.String" "-h")))
+      (is (thrown-with-msg? Exception #"^exit 1 Error:\nUnknown option"
+                            (m/-main "-c" "java.lang.String" "--bad-option")))
+      (is (thrown-with-msg? Exception #"^exit 1 Error:\nOptions must start with a hyphen"
+                            (m/-main "-c" "java.lang.String" "members")))
+      (is (thrown-with-msg? Exception #"^exit 1 Error:\nMust supply at least one class to wrap"
+                            (m/-main)))
+      (is (thrown-with-msg? Exception #"^exit 1 Invalid class: invalid.Class"
+                            (m/-main "-c" "invalid.Class"))))))

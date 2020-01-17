@@ -29,6 +29,58 @@
 
 (declare unbound-var)
 
+(deftest class-name-test
+  (is (= "java.lang.String"
+         (w/class-name (class ""))))
+  (is (= "java.lang.Long"
+         (w/class-name (class 0))))
+  (is (= "long"
+         (w/class-name Long/TYPE)))
+  (is (= "nil"
+         (w/class-name (class nil)))))
+
+(deftest array-test
+  (is (= "[Ljava.lang.Long;"
+         (w/class-name (w/array-of Long))))
+  (is (= "[J"
+         (w/class-name (w/array-of Long/TYPE))))
+  (is (= "[[J"
+         (w/class-name (w/array-of (w/array-of Long/TYPE)))))
+  (doseq [t tortilla.spec/example-classes
+          :when (not= t Void/TYPE)]
+    (testing (str "Checking class " (w/class-name t))
+      (is (= t (w/array-component (w/array-of t)))))))
+
+(deftest tagged-local-test
+  (let [tagged-String (w/tagged-local 'a String)]
+    (is (symbol? tagged-String))
+    (is (= 'java.lang.String
+           (-> tagged-String meta :tag))))
+  (let [tagged-Long-array (w/tagged-local 'a (class (into-array Long [])))]
+    (is (symbol? tagged-Long-array))
+    (is (= "[Ljava.lang.Long;"
+           (-> tagged-Long-array meta :tag))))
+  (let [tagged-long-array (w/tagged-local 'a (class (long-array [])))]
+    (is (symbol? tagged-long-array))
+    (is (= "[J"
+           (-> tagged-long-array meta :tag))))
+  (let [tagged-Long (w/tagged-local 'a Long)]
+    (is (symbol? tagged-Long))
+    (is (= 'java.lang.Long
+           (-> tagged-Long meta :tag))))
+  (let [tagged-long (w/tagged-local 'a Long/TYPE)]
+    (is (seq? tagged-long))
+    (is (= `long
+           (first tagged-long))))
+  (let [tagged-double (w/tagged-local 'a Double/TYPE)]
+    (is (seq? tagged-double))
+    (is (= `double
+           (first tagged-double))))
+  (let [tagged-int (w/tagged-local 'a Integer/TYPE)]
+    (is (symbol? tagged-int))
+    (is (= 'java.lang.Integer
+           (-> tagged-int meta :tag)))))
+
 (deftest compile-time-fn-test
   (is (fn? (w/compile-time-fn nil)))
   (is (fn? (w/compile-time-fn 'nil)))
@@ -41,11 +93,11 @@
   (is (thrown? IllegalArgumentException (w/compile-time-fn #'unbound-var)))
   (is (thrown? IllegalArgumentException (w/compile-time-fn '(fn [x] (inc x))))))
 
-(deftest type-symbol-test
-  (is (= 'java.lang.Integer/TYPE (w/type-symbol Integer/TYPE)))
-  (is (= 'java.lang.Integer      (w/type-symbol Integer)))
+(deftest class-symbol-test
+  (is (= 'java.lang.Integer/TYPE (w/class-symbol Integer/TYPE)))
+  (is (= 'java.lang.Integer      (w/class-symbol Integer)))
   (is (thrown-with-msg? IllegalArgumentException #"Unrecognised type: void"
-                        (w/type-symbol Void/TYPE))))
+                        (w/class-symbol Void/TYPE))))
 
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
