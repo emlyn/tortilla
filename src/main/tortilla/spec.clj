@@ -216,34 +216,18 @@
   :ret (constantly false))
 
 (s/fdef w/args-compatible
-  :args (s/cat :id nat-int?
+  :args (s/cat :member ::member
                :args (s/coll-of any? :kind vector? :min-count 1)
-               :types (s/coll-of ::non-void-class :kind vector? :min-count 1)
                :coercer (s/? ::coercer))
-  :ret (s/nilable (s/and (s/coll-of any? :kind vector? :min-count 2)
-                         #(nat-int? (first %))))
+  :ret (s/nilable ::member)
   :fn #(or (-> % :ret nil?)
-           (and (= (-> % :args :id)
-                   (-> % :ret first))
-                (= (-> % :args :args count)
-                   (-> % :ret count dec)))))
+           (= (-> % :args :member :id)
+              (-> % :ret :id))))
 
 (s/fdef w/select-overload
-  :args (s/with-gen
-          (s/cat :args (s/coll-of any? :kind any? :min-count 1)
-                 :matches (s/coll-of (s/nilable
-                                      (s/and (s/coll-of any? :kind vector? :min-count 2)
-                                             #(nat-int? (first %))))
-                                     :kind vector?))
-          #(gen/let [len (gen/fmap inc gen/nat)]
-             (gen/tuple (gen/vector gen/simple-type len)
-                        (gen/fmap (fn [vecs]
-                                    (mapv (fn [id v]
-                                            (into [id] v))
-                                          (range)
-                                          vecs))
-                                  (gen/vector (gen/vector gen/simple-type len)
-                                              0 5)))))
+  :args (s/cat :args (s/coll-of any? :kind any? :min-count 1)
+               :matches (s/coll-of (s/nilable ::member)
+                                   :kind vector?))
   :ret (s/and (s/coll-of any? :kind vector?)
               #(int? (first %)))
   :fn (s/or :no-match (s/and #(-> % :ret first (= -1))

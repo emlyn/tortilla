@@ -96,8 +96,10 @@
 (deftest class-symbol-test
   (is (= 'java.lang.Integer/TYPE (w/class-symbol Integer/TYPE)))
   (is (= 'java.lang.Integer      (w/class-symbol Integer)))
-  (is (thrown-with-msg? IllegalArgumentException #"Unrecognised type: void"
-                        (w/class-symbol Void/TYPE))))
+  (is (= 'java.lang.Void/TYPE    (w/class-symbol Void/TYPE)))
+  ;; There are no unknown primitive types to use for this test, so skip it:
+  #_(is (thrown-with-msg? IllegalArgumentException #"Unrecognised primitive type: "
+                          (w/class-symbol ?))))
 
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
@@ -135,8 +137,11 @@
   (testing "non-consecutive arg counts"
     (is (= 6 (qux 10 2 2)))
     (is (= 4 (qux 10 2 2 2)))
-    (is (= "qux_z4" (qux "z" 2 2)))
-    (is (= "qux_z3" (qux "z" 2 2 1))))
+    (is (= "qux1_z4" (qux "z" 2 2)))
+    (is (= "qux1_z3" (qux "z" 2 2 1))))
+
+  (testing "non-vararg is preferred"
+    (is (= "qux2" (qux "z" 10 2 2 2))))
 
   (testing "Checking array arguments"
     (is (= 3
@@ -144,8 +149,8 @@
                 (long-array [3 2 1])))))
 
   (testing "testing overlapping types"
-    ;; This one doesn't work reliably, as it will just take the first matching overload,
-    ;; not necessarily the best match.
+    ;; This one doesn't (yet) work reliably, as it will just take the first matching overload,
+    ;; not necessarily the best match:
     #_(is (= "baz1_abc"
            (baz "abc")))
     (is (= "baz2_123"

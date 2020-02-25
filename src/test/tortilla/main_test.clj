@@ -45,10 +45,7 @@
                              "-d" "foo:1.0" "-d" "[bar/baz \"2.0\"]"])))))
 
 (deftest main-test
-  (let [coerce-check
-        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\] #'tortilla.main/coerce\)"
-        non-coerce-check
-        #"(?m)\(tortilla.wrap/args-compatible [0-9]+ \[p0_[0-9]+\] \[java.lang.Number\]\)"]
+  (let [coerce-check #"#'tortilla.main/coerce"]
     (testing "Listing members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "java.lang.Number" "--members"))]
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -69,8 +66,7 @@
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
-        (is (re-find coerce-check stdout))
-        (is (not (re-find non-coerce-check stdout)))))
+        (is (re-find coerce-check stdout))))
     (testing "Without coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-coerce"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
@@ -78,8 +74,7 @@
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
-        (is (not (re-find coerce-check stdout)))
-        (is (re-find non-coerce-check stdout))))
+        (is (not (re-find coerce-check stdout)))))
     (testing "Dynamically adding to classpath"
       (let [stdout (with-out-str (m/-main "--no-instrument"
                                           "-d" "org.jblas:jblas:1.2.4"

@@ -44,7 +44,8 @@
         "double"  'java.lang.Double/TYPE
         "char"    'java.lang.Character/TYPE
         "boolean" 'java.lang.Boolean/TYPE
-        (throw (IllegalArgumentException. (str "Unrecognised type: " name))))
+        "void"    'java.lang.Void/TYPE
+        (throw (IllegalArgumentException. (str "Unrecognised primitive type: " name))))
       (symbol name))))
 
 (defn array-class?
@@ -89,13 +90,15 @@
 ;; Member (method, constructor)
 
 (defrecord MemberInfo
-    [type
-     declaring-class
+    [id
+     type
      name
+     declaring-class
      return-type
      raw-parameter-types
      raw-parameter-count
-     modifiers])
+     modifiers
+     invocation-args])
 
 (defprotocol ToMemberInfo
   (to-member-info [member]))
@@ -103,29 +106,46 @@
 (extend-protocol ToMemberInfo
   Method
   (to-member-info [member]
-    (->MemberInfo :method
-                  (.getDeclaringClass member)
+    (->MemberInfo -1
+                  :method
                   (.getName member)
+                  (.getDeclaringClass member)
                   (.getReturnType member)
                   (.getParameterTypes member)
                   (.getParameterCount member)
                   (let [mods (.getModifiers member)]
                     (cond-> #{}
                       (.isVarArgs member)      (conj :vararg)
-                      (Modifier/isStatic mods) (conj :static)))))
+                      (Modifier/isStatic mods) (conj :static)))
+                  nil))
 
   Constructor
   (to-member-info [member]
-    (->MemberInfo :constructor
-                  (.getDeclaringClass member)
+    (->MemberInfo -1
+                  :constructor
                   (.getSimpleName (.getDeclaringClass member))
+                  (.getDeclaringClass member)
                   (.getDeclaringClass member)
                   (.getParameterTypes member)
                   (.getParameterCount member)
                   (let [mods (.getModifiers member)]
                     (cond-> #{}
                       (.isVarArgs member)      (conj :vararg)
-                      (Modifier/isStatic mods) (conj :static))))))
+                      (Modifier/isStatic mods) (conj :static)))
+                  nil)))
+
+(defn member-form
+  "Emit the form to construct a MemberInfo, optionally overriding the id"
+  [member & [id]]
+  `(->MemberInfo ~(or id (:id member))
+                 ~(:type member)
+                 ~(:name member)
+                 ~(class-symbol (:declaring-class member))
+                 ~(class-symbol (:return-type member))
+                 ~(mapv class-symbol (:raw-parameter-types member))
+                 ~(:raw-parameter-count member)
+                 ~(:modifiers member)
+                 ~(:invocation-args member)))
 
 (defn member-info
   [member]
@@ -200,31 +220,30 @@
                (str/join ", " (map (comp class-name type) args))))))
 
 (defn args-compatible
-  ([id args arg-types]
-   (reduce (fn [r [arg typ]]
-             (if (compatible-type? typ arg)
-               r
-               (reduced nil)))
-           (into [id] args)
-           (map vector
-                args
-                (concat arg-types (repeat (last arg-types))))))
-  ([id args arg-types coercer]
-   (reduce (fn [r [arg typ]]
-             (let [coerced (coercer arg (ensure-boxed typ))]
-               (if (compatible-type? typ coerced)
-                 (conj r coerced)
-                 (reduced nil))))
-           [id]
-           (map vector
-                args
-                (concat arg-types (repeat (last arg-types)))))))
+  ([member args]
+   (when (every? identity
+                 (map compatible-type?
+                      (parameter-types member)
+                      args))
+     (assoc member :invocation-args args)))
+  ([member args coercer]
+   (when-let [iargs (reduce (fn [r [arg typ]]
+                              (let [coerced (coercer arg (ensure-boxed typ))]
+                                (if (compatible-type? typ coerced)
+                                  (conj r coerced)
+                                  (reduced nil))))
+                            []
+                            (map vector
+                                 args
+                                 (parameter-types member)))]
+     (assoc member :invocation-args iargs))))
 
-(defn select-overload
+(defn ^:no-gen select-overload
   [args matches]
-  (let [matches (remove nil? matches)]
-    (or (first matches)
-        (into [-1] args))))
+  (let [{fixarg false vararg true} (group-by member-varargs? (remove nil? matches))]
+    (if-let [match (or (first fixarg) (first vararg))]
+      (into [(:id match)] (:invocation-args match))
+      (into [-1] args))))
 
 (defn ^:no-gen member-invocation
   [member args & [more-arg]]
@@ -264,10 +283,11 @@
          (member-invocation (first members) [])
          (if-let [mem (and (= 1 (count members))
                            (first members))]
-           `(if-let [[~'_ ~@arg-vec] (args-compatible
-                                      0 ~arg-vec
-                                      ~(->> mem parameter-types (take arity) (mapv class-symbol))
-                                      ~@(when coerce [coerce]))]
+           `(if-let [~arg-vec
+                     (:invocation-args
+                      (args-compatible ~(member-form mem)
+                                       ~arg-vec
+                                       ~@(when coerce [coerce])))]
               ~(member-invocation mem arg-vec)
               (type-error ~(str (-> mem :declaring-class class-name) \.
                                 (-> mem :name))
@@ -277,10 +297,7 @@
                   (select-overload
                    ~arg-sym
                    [~@(map-indexed (fn [id member]
-                                     (let [arg-types (->> (parameter-types member)
-                                                          (take arity)
-                                                          (mapv class-symbol))]
-                                       `(args-compatible ~id ~arg-sym ~arg-types ~@(when coerce [coerce]))))
+                                     `(args-compatible ~(member-form member id) ~arg-sym ~@(when coerce [coerce])))
                                    members)])]
               (case (long id#)
                 ~@(mapcat (fn [id mem]
@@ -301,10 +318,11 @@
     `(~(tagged `[~@arg-vec] ret)
       ~(if-let [mem (and (= 1 (count members))
                          (first members))]
-         `(if-let [[~'_ ~@arg-vec] (args-compatible
-                                    0 (into ~fix-args ~more-arg)
-                                    ~(->> mem parameter-types (take (inc min-arity)) (mapv class-symbol))
-                                    ~@(when coerce [coerce]))]
+         `(if-let [~arg-vec
+                   (:invocation-args
+                    (args-compatible ~(member-form mem)
+                                     (into ~fix-args ~more-arg)
+                                     ~@(when coerce [coerce])))]
             ~(member-invocation mem fix-args more-arg)
             (apply type-error ~(str (-> mem :declaring-class class-name) \.
                                     (-> mem :name))
@@ -315,10 +333,7 @@
                 (select-overload
                  ~arg-sym
                  [~@(map-indexed (fn [id member]
-                                   (let [arg-types (->> (parameter-types member)
-                                                        (take (inc min-arity))
-                                                        (mapv class-symbol))]
-                                     `(args-compatible ~id ~arg-sym ~arg-types ~@(when coerce [coerce]))))
+                                   `(args-compatible ~(member-form member id) ~arg-sym ~@(when coerce [coerce])))
                                  members)])]
             (case (long id#)
               ~@(mapcat (fn [id mem]

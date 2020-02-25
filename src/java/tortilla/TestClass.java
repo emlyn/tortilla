@@ -58,7 +58,12 @@ public class TestClass {
 
     // second vararg overload with non-consecutive number of args
     public static String qux(String s, int i, int j, int... k) {
-        return "qux_" + s + (i + j - Arrays.stream(k).sum());
+        return "qux1_" + s + (i + j - Arrays.stream(k).sum());
+    }
+
+    // non-vararg method should be preferred to also-matching vararg method
+    public static String qux(String s, int i, int j, int k, int l) {
+        return "qux2";
     }
 
     // void return
