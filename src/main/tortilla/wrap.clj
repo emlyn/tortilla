@@ -1,93 +1,9 @@
 (ns tortilla.wrap
-  (:require [clojure.string :as str])
-  (:import [java.lang.reflect Executable Constructor Method Modifier]))
+  (:require [clojure.set :as set]
+            [clojure.string :as str])
+  (:import [java.lang.reflect Constructor Method Modifier]))
 
-(set! *warn-on-reflection* true)
-
-(defn class-methods [^Class klazz]
-  (seq (.getMethods klazz)))
-
-(defn class-constructors [^Class klazz]
-  (seq (.getConstructors klazz)))
-
-(defn member-varargs? [^Executable member]
-  (.isVarArgs member))
-
-(defn member-static? [^Executable member]
-  (Modifier/isStatic (.getModifiers member)))
-
-(defn member-class ^Class [^Executable member]
-  (.getDeclaringClass member))
-
-(defn vararg-type [^Executable member]
-  (when (member-varargs? member)
-    (.getComponentType ^Class (last (.getParameterTypes member)))))
-
-(defn class-name [^Class klazz]
-  (.getName klazz))
-
-(defprotocol MemberInfo
-  (member-name* [_])
-  (member-invocation* [_])
-  ;; Minimum number of parameters a member accepts. It could take more if it has varargs
-  (parameter-count* [_])
-  ;; Possibly infinite (if member has varargs) list of parameter types accepted by member
-  (parameter-types* [_])
-  (return-type* [_]))
-
-;; Wrap protocol members in functions so we get spec instrumentation
-(defn member-name [m]
-  (member-name* m))
-
-(defn member-invocation [m]
-  (member-invocation* m))
-
-(defn parameter-count [m]
-  (parameter-count* m))
-
-(defn parameter-types [m]
-  (parameter-types* m))
-
-(defn return-type [m]
-  (return-type* m))
-
-(extend-protocol MemberInfo
-  Method
-  (member-name* [^Method m]
-    (.getName m))
-  (member-invocation* [^Method m]
-    (if (member-static? m)
-      (symbol (-> m member-class class-name) (member-name m))
-      (symbol (str "." (member-name m)))))
-  (parameter-count* [^Method m]
-    (cond-> (.getParameterCount m)
-      (not (member-static? m)) inc
-      (member-varargs? m)      dec))
-  (parameter-types* [^Method m]
-    (concat (when-not (member-static? m)
-              [(member-class m)])
-            (cond-> (.getParameterTypes m)
-              (member-varargs? m) butlast)
-            (when (member-varargs? m)
-              (repeat (vararg-type m)))))
-  (return-type* [^Method m]
-    (.getReturnType m))
-
-  Constructor
-  (member-name* [^Constructor c]
-    (-> c member-class .getSimpleName))
-  (member-invocation* [^Constructor c]
-    (-> c member-class class-name (str ".") symbol))
-  (parameter-count* [^Constructor c]
-    (cond-> (.getParameterCount c)
-      (member-varargs? c) dec))
-  (parameter-types* [^Constructor c]
-    (concat (cond-> (.getParameterTypes c)
-              (member-varargs? c) butlast)
-            (when (member-varargs? c)
-              (repeat (vararg-type c)))))
-  (return-type* [^Constructor c]
-    (.getDeclaringClass c)))
+;; General
 
 (defn camel->kebab
   [string]
@@ -96,176 +12,377 @@
       (str/replace #"([a-z0-9])([A-Z])" "$1-$2")
       (str/lower-case)))
 
-(defn array-class [klz]
-  (class (into-array klz [])))
+;; Class
 
-(defn ensure-boxed [t]
-  (let [sym (symbol (class-name t))]
-    (get '{byte java.lang.Byte
-           short java.lang.Short
-           int java.lang.Integer
-           long java.lang.Long
-           float java.lang.Float
-           double java.lang.Double
-           char java.lang.Character
-           boolean java.lang.Boolean
-           void java.lang.Object}
-         sym sym)))
+(defn class-methods
+  [^Class klazz]
+  (seq (.getMethods klazz)))
 
-(defn ensure-boxed-long-double
-  "Allow long and double, box everything else."
-  [t]
-  (let [sym (symbol (class-name t))]
-    (get '{byte java.lang.Byte
-           short java.lang.Short
-           int java.lang.Integer
-           float java.lang.Float
-           char java.lang.Character
-           boolean java.lang.Boolean
-           void java.lang.Object}
-         sym sym)))
+(defn class-constructors
+  [^Class klazz]
+  (seq (.getConstructors klazz)))
 
-(defn tagged [value tag]
-  (vary-meta value assoc :tag (ensure-boxed-long-double tag)))
-
-(defn tagged-local [value tag]
-  (let [tag (ensure-boxed-long-double tag)]
-    (cond
-      (= 'long tag)
-      `(long ~value)
-
-      (= 'double tag)
-      `(double ~value)
-
-      :else
-      (vary-meta value assoc :tag tag))))
+(defn class-name
+  [^Class klazz]
+  (if (nil? klazz)
+    "nil"
+    (.getName klazz)))
 
 (defn primitive?
-  [^Class cls]
-  (.isPrimitive cls))
+  [^Class klazz]
+  (.isPrimitive klazz))
+
+(defn class-symbol
+  [klazz]
+  (let [name (class-name klazz)]
+    (if (primitive? klazz)
+      (case name
+        "byte"    'java.lang.Byte/TYPE
+        "short"   'java.lang.Short/TYPE
+        "int"     'java.lang.Integer/TYPE
+        "long"    'java.lang.Long/TYPE
+        "float"   'java.lang.Float/TYPE
+        "double"  'java.lang.Double/TYPE
+        "char"    'java.lang.Character/TYPE
+        "boolean" 'java.lang.Boolean/TYPE
+        "void"    'java.lang.Void/TYPE
+        (throw (IllegalArgumentException. (str "Unrecognised primitive type: " name))))
+      (symbol name))))
+
+(defn array-class?
+  [^Class klazz]
+  (.isArray klazz))
+
+(defn array-of
+  [klazz]
+  (class (into-array klazz [])))
+
+(defn array-component
+  [^Class klazz]
+  (.getComponentType klazz))
+
+(defn ensure-boxed
+  [klazz]
+  (get {Byte/TYPE      Byte
+        Short/TYPE     Short
+        Integer/TYPE   Integer
+        Long/TYPE      Long
+        Float/TYPE     Float
+        Double/TYPE    Double
+        Character/TYPE Character
+        Boolean/TYPE   Boolean
+        Void/TYPE      Object}
+       klazz klazz))
+
+(defn boxed-except-long-double
+  "Allow long and double, box everything else."
+  [klazz]
+  (if (#{Long/TYPE Double/TYPE} klazz)
+    klazz
+    (ensure-boxed klazz)))
+
+(defn as-tag
+  [klazz]
+  (let [name (class-name klazz)]
+    (if (array-class? klazz)
+      name
+      (symbol name))))
+
+;; Member (method, constructor)
+
+(defrecord MemberInfo
+    [id
+     type
+     name
+     declaring-class
+     return-type
+     raw-parameter-types
+     raw-parameter-count
+     modifiers
+     invocation-args])
+
+(defprotocol ToMemberInfo
+  (to-member-info [member]))
+
+(extend-protocol ToMemberInfo
+  Method
+  (to-member-info [member]
+    (->MemberInfo -1
+                  :method
+                  (.getName member)
+                  (.getDeclaringClass member)
+                  (.getReturnType member)
+                  (.getParameterTypes member)
+                  (.getParameterCount member)
+                  (let [mods (.getModifiers member)]
+                    (cond-> #{}
+                      (.isVarArgs member)      (conj :vararg)
+                      (Modifier/isStatic mods) (conj :static)))
+                  nil))
+
+  Constructor
+  (to-member-info [member]
+    (->MemberInfo -1
+                  :constructor
+                  (.getSimpleName (.getDeclaringClass member))
+                  (.getDeclaringClass member)
+                  (.getDeclaringClass member)
+                  (.getParameterTypes member)
+                  (.getParameterCount member)
+                  (let [mods (.getModifiers member)]
+                    (cond-> #{}
+                      (.isVarArgs member)      (conj :vararg)
+                      (Modifier/isStatic mods) (conj :static)))
+                  nil)))
+
+(defn member-form
+  "Emit the form to construct a MemberInfo, optionally overriding the id"
+  [member & [id]]
+  `(->MemberInfo ~(or id (:id member))
+                 ~(:type member)
+                 ~(:name member)
+                 ~(class-symbol (:declaring-class member))
+                 ~(class-symbol (:return-type member))
+                 ~(mapv class-symbol (:raw-parameter-types member))
+                 ~(:raw-parameter-count member)
+                 ~(:modifiers member)
+                 ~(:invocation-args member)))
+
+(defn member-info
+  [member]
+  (to-member-info member))
+
+(defn member-constructor?
+  [member]
+  (= :constructor (:type member)))
+
+(defn member-varargs?
+  [member]
+  (contains? (:modifiers member) :vararg))
+
+(defn member-static?
+  [member]
+  (contains? (:modifiers member) :static))
+
+(defn vararg-type
+  [member]
+  (when (member-varargs? member)
+    (array-component (last (:raw-parameter-types member)))))
+
+(defn parameter-count
+  [member]
+  (cond-> (-> member :raw-parameter-count inc)
+    (member-constructor? member) dec
+    (member-static? member) dec
+    (member-varargs? member) dec))
+
+(defn parameter-types
+  [member]
+  (concat (when-not (or (member-constructor? member)
+                        (member-static? member))
+            [(:declaring-class member)])
+          (cond-> (:raw-parameter-types member)
+            (member-varargs? member) butlast)
+          (when (member-varargs? member)
+            (repeat (vararg-type member)))))
+
+(defn member-symbol
+  [member]
+  (cond
+    (= :constructor (:type member)) (-> member :declaring-class class-name (str \.) symbol)
+    (member-static? member)         (symbol (-> member :declaring-class class-name)
+                                            (-> member :name))
+    :else                           (->> member :name (str \.) symbol)))
+
+;; Impl
+
+(defn tagged
+  [sym tag]
+  (vary-meta sym assoc :tag (-> tag boxed-except-long-double as-tag)))
+
+(defn tagged-local
+  [sym tag]
+  (condp = tag
+    Long/TYPE   `(long ~sym)
+    Double/TYPE `(double ~sym)
+    (tagged sym tag)))
 
 (defn compatible-type?
   [^Class typ val]
-  (or (instance? (resolve (ensure-boxed typ)) val)
+  (or (instance? (ensure-boxed typ) val)
       (and (nil? val)
            (not (primitive? typ)))))
 
-(defn type-error
+(defn ^:no-gen type-error
   [name & args]
   (throw (IllegalArgumentException.
           ^String
           (str "Unrecognised types for " name ": "
                (str/join ", " (map (comp class-name type) args))))))
 
+(defn args-compatible
+  ([member args]
+   (when (every? identity
+                 (map compatible-type?
+                      (parameter-types member)
+                      args))
+     (assoc member :invocation-args args)))
+  ([member args coercer]
+   (when-let [iargs (reduce (fn [r [arg typ]]
+                              (let [coerced (coercer arg (ensure-boxed typ))]
+                                (if (compatible-type? typ coerced)
+                                  (conj r coerced)
+                                  (reduced nil))))
+                            []
+                            (map vector
+                                 args
+                                 (parameter-types member)))]
+     (assoc member :invocation-args iargs))))
+
+(defn most-specific-type [^Class clz1 ^Class clz2]
+  (cond
+    (.isAssignableFrom clz2 clz1) clz1
+    (.isAssignableFrom clz1 clz2) clz2
+    :else nil))
+
+(defn ^:no-gen most-specific-overloads
+  [args members]
+  (loop [i 0
+         candidates (set members)]
+    (if (or (empty? candidates)
+            (>= i (count args)))
+      candidates
+      (let [types (map #(nth (parameter-types %) i)
+                       members)
+            thistype (reduce #(or (most-specific-type %1 %2)
+                                  (reduced nil)) types)
+            new-cands (filter #(= thistype (nth (parameter-types %) i))
+                              members)]
+        (recur (inc i)
+               (set/intersection candidates (set new-cands)))))))
+
+(defn ^:no-gen prefer-non-vararg-overloads
+  [_args members]
+  (let [{fixarg false vararg true} (group-by member-varargs? members)]
+    (or fixarg vararg)))
+
+(defn invocation-args
+  [member args]
+  (if member
+    (into [(:id member)] (:invocation-args member))
+    (into [-1]           args)))
+
+(defn ^:no-gen select-overload
+  [args members]
+  (let [members (->> members
+                     (remove nil?)
+                     (prefer-non-vararg-overloads args))]
+    (if (<= (count members) 1)
+      (invocation-args (first members) args)
+      (let [members (most-specific-overloads args members)]
+        (if (<= 1 (count members))
+          (invocation-args (first members) args)
+          (invocation-args nil args))))))
+
+(defn ^:no-gen member-invocation
+  [member args & [more-arg]]
+  `(~(member-symbol member)
+    ~@(map (fn [sym ^Class klz]
+             (tagged-local sym klz))
+           (take (parameter-count member) args)
+           (parameter-types member))
+    ~@(when (member-varargs? member)
+        [(tagged-local `(into-array ~(vararg-type member)
+                                    ~(if more-arg
+                                       `(into ~(subvec args (parameter-count member))
+                                              ~more-arg)
+                                       (subvec args (parameter-count member))))
+                       (array-of (vararg-type member)))])))
+
+(defn merge-return-types
+  [types]
+  (let [t (if (apply = types)
+            (first types)
+            Object)]
+    (if (= Void/TYPE t)
+      Object
+      t)))
+
 ;; Generate form for one arity of a member
 (defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]
   (let [arg-vec (mapv #(gensym (str "p" % "_")) (range arity))
+        arg-sym (gensym "args_")
         members (concat uniadics variadics)
-        ret     (if (apply = (map return-type members))
-                  (return-type (first members))
-                  java.lang.Object)]
+        ret     (merge-return-types (map :return-type members))]
     `(~(tagged `[~@arg-vec] ret)
-      ~(if (and (zero? arity)
-                (= 1 (count members)))
-         (let [member (first members)]
-           (if (member-varargs? member)
-             `(~(member-invocation member) ~(tagged-local `(into-array ~(vararg-type member) [])
-                                                          (array-class (vararg-type member))))
-             `(~(member-invocation member))))
-         `(cond
-            ~@(mapcat
-               (fn [member]
-                 `[(and ~@(map (fn [sym ^Class klz]
-                                 `(compatible-type? ~klz
-                                                    ~(if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed klz))
-                                                       sym)))
-                               arg-vec
-                               (parameter-types member)))
-                   (~(member-invocation member)
-                    ~@(map (fn [sym ^Class klz]
-                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                           arg-vec
-                           (parameter-types member)))])
-               uniadics)
-            ~@(mapcat
-               (fn [member]
-                 `[(and ~@(map (fn [sym ^Class klz]
-                                 `(compatible-type? ~klz
-                                                    ~(if coerce
-                                                       `(~coerce ~sym ~(ensure-boxed klz))
-                                                       sym)))
-                               arg-vec
-                               (parameter-types member)))
-                   (~(member-invocation member)
-                    ~@(map (fn [sym ^Class klz]
-                             (tagged-local (if coerce `(~coerce ~sym ~(ensure-boxed klz)) sym) klz))
-                           (take (parameter-count member) arg-vec)
-                           (parameter-types member))
-                    ~(tagged-local `(into-array ~(vararg-type member)
-                                                ~(mapv (fn [sym]
-                                                         (if coerce
-                                                           `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
-                                                           sym))
-                                                       (drop (parameter-count member) arg-vec)))
-
-                                   (array-class (vararg-type member))))])
-               variadics)
-            :else (type-error ~(str (-> members first member-class class-name) \.
-                                    (-> members first member-name))
-                              ~@arg-vec))))))
+      ~(if (zero? arity)
+         ;; Even though there may be more than one members compatible with zero args
+         ;; (e.g. diff. typed varargs) there is no way to differentiate them on argument types,
+         ;; so just emit a call and let the compiler deal with it:
+         (member-invocation (first members) [])
+         (if-let [mem (and (= 1 (count members))
+                           (first members))]
+           `(if-let [~arg-vec
+                     (:invocation-args
+                      (args-compatible ~(member-form mem)
+                                       ~arg-vec
+                                       ~@(when coerce [coerce])))]
+              ~(member-invocation mem arg-vec)
+              (type-error ~(str (-> mem :declaring-class class-name) \.
+                                (-> mem :name))
+                          ~@arg-vec))
+           `(let [~arg-sym ~arg-vec
+                  [id# ~@arg-vec]
+                  (select-overload
+                   ~arg-sym
+                   [~@(map-indexed (fn [id member]
+                                     `(args-compatible ~(member-form member id) ~arg-sym ~@(when coerce [coerce])))
+                                   members)])]
+              (case (long id#)
+                ~@(mapcat (fn [id mem]
+                            [id (member-invocation mem arg-vec)])
+                          (range)
+                          members)
+                (type-error ~(str (-> members first :declaring-class class-name) \.
+                                  (-> members first :name))
+                            ~@arg-vec))))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
-  (let [more-arg (gensym "more_")
-        arg-vec (into (mapv #(gensym (str "p" % "_")) (range min-arity))
-                      ['& more-arg])
-        ret (if (apply = (map return-type members))
-              (return-type (first members))
-              java.lang.Object)]
+  (let [fix-args (mapv #(gensym (str "p" % "_")) (range min-arity))
+        more-arg (gensym "more_")
+        arg-sym (gensym "args_")
+        arg-vec (conj fix-args '& more-arg)
+        ret (merge-return-types (map :return-type members))]
     `(~(tagged `[~@arg-vec] ret)
-      (cond
-        ~@(mapcat
-           (fn [member]
-             `[(and ~@(map (fn [sym ^Class klz]
-                             `(compatible-type? ~klz
-                                                ~(if coerce
-                                                   `(~coerce ~sym ~(ensure-boxed klz))
-                                                   sym)))
-                           (take min-arity arg-vec)
-                           (parameter-types member))
-                    (every? (partial compatible-type? ~(vararg-type member))
-                            ~(if coerce
-                               `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
-                                     ~more-arg)
-                               more-arg)))
-               (~(member-invocation member)
-                ~@(map (fn [sym ^Class klz]
-                         (tagged-local (if coerce
-                                         `(~coerce ~sym ~(ensure-boxed klz))
-                                         sym)
-                                       klz))
-                       (take (parameter-count member) arg-vec)
-                       (parameter-types member))
-                ~(tagged-local `(into-array ~(vararg-type member)
-                                            (into ~(mapv (fn [sym]
-                                                           (if coerce
-                                                             `(~coerce ~sym ~(ensure-boxed (vararg-type member)))
-                                                             sym))
-                                                         (subvec arg-vec
-                                                                 (parameter-count member)
-                                                                 min-arity))
-                                                  ~(if coerce
-                                                     `(map #(~coerce % ~(ensure-boxed (vararg-type member)))
-                                                          ~more-arg)
-                                                    more-arg)))
-                               (array-class (vararg-type member))))])
-           members)
-        :else (apply type-error
-                     ~(str (-> members first member-class class-name) \.
-                           (-> members first member-name))
-                     ~@(take min-arity arg-vec)
-                     ~more-arg)))))
+      ~(if-let [mem (and (= 1 (count members))
+                         (first members))]
+         `(if-let [~arg-vec
+                   (:invocation-args
+                    (args-compatible ~(member-form mem)
+                                     (into ~fix-args ~more-arg)
+                                     ~@(when coerce [coerce])))]
+            ~(member-invocation mem fix-args more-arg)
+            (apply type-error ~(str (-> mem :declaring-class class-name) \.
+                                    (-> mem :name))
+                   ~@fix-args
+                   ~more-arg))
+         `(let [~arg-sym (into ~fix-args ~more-arg)
+                [id# ~@arg-vec]
+                (select-overload
+                 ~arg-sym
+                 [~@(map-indexed (fn [id member]
+                                   `(args-compatible ~(member-form member id) ~arg-sym ~@(when coerce [coerce])))
+                                 members)])]
+            (case (long id#)
+              ~@(mapcat (fn [id mem]
+                          [id (member-invocation mem fix-args more-arg)])
+                        (range)
+                        members)
+              (apply type-error ~(str (-> members first :declaring-class class-name) \.
+                                      (-> members first :name))
+                     ~@fix-args
+                     ~more-arg)))))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
@@ -276,7 +393,7 @@
                                               (parameter-types member)))
                              (member-varargs? member) (conj '& [(vararg-type member)])))
                          members)}
-       ~@(loop [[[arity membs] & more] (sort arities)
+       ~@(loop [[[arity membs] & more :as all-membs] (sort arities)
                 variadics []
                 results []
                 last-arity -1]
@@ -289,19 +406,19 @@
              (if (and (> arity (inc last-arity))
                       (seq variadics))
                ;; arity increase > 1, and we have varargs, so generate intermediate arity form
-               (recur [[arity membs] more]
+               (recur all-membs
                       variadics
                       (conj results (arity-wrapper-form (inc last-arity) [] variadics opts))
                       (inc last-arity))
                ;; else generate form for the next set of members
-               (let [{vararg true fixarg false} (group-by member-varargs? membs)
+               (let [{fixarg false vararg true} (group-by member-varargs? membs)
                      variadics (into variadics vararg)]
                  (recur more
                         variadics
                         (conj results (arity-wrapper-form arity fixarg variadics opts))
                         (long arity)))))))))
 
-(defn compile-time-fn
+(defn ^:no-gen compile-time-fn
   [fun]
   (let [fun (if (symbol? fun)
               (resolve fun)
@@ -322,18 +439,22 @@
 (defn class-members
   [klazz {:keys [filter-fn]}]
   (->> klazz
-       resolve
        ((juxt class-constructors class-methods))
        (apply concat)
        (remove (set (class-methods Object)))
+       (map member-info)
        (filter (compile-time-fn filter-fn))))
 
+(defn function-sym
+  [prefix member]
+  (->> member :name camel->kebab (str prefix) symbol))
+
 (defmacro defwrapper [klazz {:keys [prefix coerce] :as opts}]
-  (let [members (group-by member-name
+  (let [klazz (cond-> klazz (symbol? klazz) resolve)
+        members (group-by (partial function-sym prefix)
                           (class-members klazz opts))]
     `(do
-       ~@(for [[mname membs] members
-               :let [fname (symbol (str prefix (camel->kebab mname)))]]
+       ~@(for [[fname membs] members]
            (member-wrapper-form fname membs (assoc opts :coerce (if (symbol? coerce)
                                                                   (resolve coerce)
                                                                   coerce)))))))

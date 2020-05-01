@@ -1,9 +1,11 @@
 (ns tortilla.main
   (:require [clojure.edn :as edn]
+            [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
             [cemerick.pomegranate :refer [add-dependencies]]
             [cemerick.pomegranate.aether :refer [maven-central]]
+            [expound.alpha :as expound]
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
             [tortilla.wrap :as w :refer [defwrapper]]
@@ -36,7 +38,6 @@
   [["-c" "--class CLASS"
     :desc "Class to generate a wrapper. May be specified multiple times."
     :default []
-    :parse-fn #(symbol %)
     :assoc-fn (fn [m k v] (update m k conj v))]
 
    ["-m" "--members"
@@ -122,7 +123,7 @@
 
 (defn member-str
   [member]
-  (str (w/member-name member)
+  (str (:name member)
        \(
        (str/join \, (map #(w/class-name %)
                          (take (cond-> (w/parameter-count member)
@@ -131,7 +132,7 @@
        (when (w/member-varargs? member) "...")
        \)
        \:
-       (w/class-name (w/return-type member))))
+       (w/class-name (:return-type member))))
 
 (def ^:dynamic *filter-in* nil)
 (def ^:dynamic *filter-out* nil)
@@ -147,12 +148,16 @@
          (or (nil? *filter-out*)
              (not (re-find *filter-out* mstr))))))
 
+(defn exit
+  [code message]
+  (when message (println message))
+  (System/exit code))
+
 (defn -main
   [& args]
   (let [options (validate-args args)]
-    (when (:exit options)
-      (println (:message options))
-      (System/exit (:exit options)))
+    (when-let [code (:exit options)]
+      (exit code (:message options)))
     (when (:instrument options)
       (st/instrument))
     (when-let [dep (:dep options)]
@@ -162,21 +167,22 @@
                         :repositories (merge maven-central
                                              {"clojars" "https://clojars.org/repo"})
                         :classloader @clojure.lang.Compiler/LOADER))
-    (doseq [cls (:class options)]
-      (when-not (instance? Class (resolve cls))
-        (println "Invalid class:" cls)
-        (System/exit 1)))
-    (doseq [cls (:class options)]
-      (println "\n;; ====" cls "====")
-      (binding [*filter-in* (:include options)
-                *filter-out* (:exclude options)]
-        (if (:members options)
-          (doseq [member (w/class-members cls {:filter-fn filter-fn})]
-            (println (member-str member)))
-          (fipp/pprint (if (:coerce options)
-                         (macroexpand-1 `(defwrapper ~cls {:coerce coerce
-                                                           :filter-fn filter-fn}))
-                         (macroexpand-1 `(defwrapper ~cls {:coerce nil
-                                                           :filter-fn filter-fn})))
-                       {:print-meta (:metadata options)
-                        :width (:width options)}))))))
+
+    (let [options (update options :class
+                          (partial mapv #(or (try (Class/forName %) (catch ClassNotFoundException _))
+                                             (exit 1 (str "Invalid class: " %)))))]
+      (doseq [cls (:class options)]
+        (println "\n;; ====" cls "====")
+        (binding [*filter-in* (:include options)
+                  *filter-out* (:exclude options)
+                  s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
+          (if (:members options)
+            (doseq [member (w/class-members cls {:filter-fn filter-fn})]
+              (println (member-str member)))
+            (fipp/pprint (if (:coerce options)
+                           (macroexpand-1 `(defwrapper ~cls {:coerce coerce
+                                                             :filter-fn filter-fn}))
+                           (macroexpand-1 `(defwrapper ~cls {:coerce nil
+                                                             :filter-fn filter-fn})))
+                         {:print-meta (:metadata options)
+                          :width (:width options)})))))))

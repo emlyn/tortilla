@@ -1,6 +1,7 @@
 (ns tortilla.wrap-test
   (:require [clojure.test :refer [deftest is testing]]
-            [tortilla.wrap :as w])
+            [tortilla.wrap :as w]
+            [tortilla.spec])
   (:import [tortilla TestClass]))
 
 ;; These will be defined later by defwrapper, declare them now to keep the linter happy:
@@ -28,6 +29,58 @@
 
 (declare unbound-var)
 
+(deftest class-name-test
+  (is (= "java.lang.String"
+         (w/class-name (class ""))))
+  (is (= "java.lang.Long"
+         (w/class-name (class 0))))
+  (is (= "long"
+         (w/class-name Long/TYPE)))
+  (is (= "nil"
+         (w/class-name (class nil)))))
+
+(deftest array-test
+  (is (= "[Ljava.lang.Long;"
+         (w/class-name (w/array-of Long))))
+  (is (= "[J"
+         (w/class-name (w/array-of Long/TYPE))))
+  (is (= "[[J"
+         (w/class-name (w/array-of (w/array-of Long/TYPE)))))
+  (doseq [t tortilla.spec/example-classes
+          :when (not= t Void/TYPE)]
+    (testing (str "Checking class " (w/class-name t))
+      (is (= t (w/array-component (w/array-of t)))))))
+
+(deftest tagged-local-test
+  (let [tagged-String (w/tagged-local 'a String)]
+    (is (symbol? tagged-String))
+    (is (= 'java.lang.String
+           (-> tagged-String meta :tag))))
+  (let [tagged-Long-array (w/tagged-local 'a (class (into-array Long [])))]
+    (is (symbol? tagged-Long-array))
+    (is (= "[Ljava.lang.Long;"
+           (-> tagged-Long-array meta :tag))))
+  (let [tagged-long-array (w/tagged-local 'a (class (long-array [])))]
+    (is (symbol? tagged-long-array))
+    (is (= "[J"
+           (-> tagged-long-array meta :tag))))
+  (let [tagged-Long (w/tagged-local 'a Long)]
+    (is (symbol? tagged-Long))
+    (is (= 'java.lang.Long
+           (-> tagged-Long meta :tag))))
+  (let [tagged-long (w/tagged-local 'a Long/TYPE)]
+    (is (seq? tagged-long))
+    (is (= `long
+           (first tagged-long))))
+  (let [tagged-double (w/tagged-local 'a Double/TYPE)]
+    (is (seq? tagged-double))
+    (is (= `double
+           (first tagged-double))))
+  (let [tagged-int (w/tagged-local 'a Integer/TYPE)]
+    (is (symbol? tagged-int))
+    (is (= 'java.lang.Integer
+           (-> tagged-int meta :tag)))))
+
 (deftest compile-time-fn-test
   (is (fn? (w/compile-time-fn nil)))
   (is (fn? (w/compile-time-fn 'nil)))
@@ -39,6 +92,14 @@
   (is (thrown? IllegalArgumentException (w/compile-time-fn unbound-var)))
   (is (thrown? IllegalArgumentException (w/compile-time-fn #'unbound-var)))
   (is (thrown? IllegalArgumentException (w/compile-time-fn '(fn [x] (inc x))))))
+
+(deftest class-symbol-test
+  (is (= 'java.lang.Integer/TYPE (w/class-symbol Integer/TYPE)))
+  (is (= 'java.lang.Integer      (w/class-symbol Integer)))
+  (is (= 'java.lang.Void/TYPE    (w/class-symbol Void/TYPE)))
+  ;; There are no unknown primitive types to use for this test, so skip it:
+  #_(is (thrown-with-msg? IllegalArgumentException #"Unrecognised primitive type: "
+                          (w/class-symbol ?))))
 
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
@@ -76,8 +137,11 @@
   (testing "non-consecutive arg counts"
     (is (= 6 (qux 10 2 2)))
     (is (= 4 (qux 10 2 2 2)))
-    (is (= "qux_z4" (qux "z" 2 2)))
-    (is (= "qux_z3" (qux "z" 2 2 1))))
+    (is (= "qux1_z4" (qux "z" 2 2)))
+    (is (= "qux1_z3" (qux "z" 2 2 1))))
+
+  (testing "non-vararg is preferred"
+    (is (= "qux2" (qux "z" 10 2 2 2))))
 
   (testing "Checking array arguments"
     (is (= 3
@@ -85,9 +149,7 @@
                 (long-array [3 2 1])))))
 
   (testing "testing overlapping types"
-    ;; This one doesn't work reliably, as it will just take the first matching overload,
-    ;; not necessarily the best match.
-    #_(is (= "baz1_abc"
+    (is (= "baz1_abc"
            (baz "abc")))
     (is (= "baz2_123"
            (baz 123))))
@@ -114,37 +176,36 @@
                             (foo tc "1" "2" "3" 4))))))
 
 (declare x-with-primitives)
-(deftest overloads-with-primitives
+(declare x-without-primitives)
+(deftest many-overloads
   (is (w/defwrapper TestClass {:prefix "x-"}))
-  (is (= "boolean_false" (x-with-primitives false)))
-  (is (= "char_x"        (x-with-primitives \x)))
-  (is (= "byte_120"      (x-with-primitives (first (.getBytes "x")))))
-  (is (= "short_99"      (x-with-primitives (short 99))))
-  (is (= "int_88"        (x-with-primitives (int 88))))
-  (is (= "long_77"       (x-with-primitives 77)))
-  (is (= "float_2.5"     (x-with-primitives (float 2.5))))
-  (is (= "double_3.5"    (x-with-primitives 3.5)))
-  (is (= "String_z"      (x-with-primitives "z")))
-  (is (thrown-with-msg?  IllegalArgumentException
-                         #"Unrecognised types for tortilla.TestClass.withPrimitives"
-                         (x-with-primitives :oops)))
-  (is (= "String_<null>" (x-with-primitives nil))))
-
-(declare y-without-primitives)
-(deftest overloads-without-primitives
-  (is (w/defwrapper TestClass {:prefix "y-"}))
-  (is (= "Boolean_false" (y-without-primitives false)))
-  (is (= "Character_x"   (y-without-primitives \x)))
-  (is (= "Byte_120"      (y-without-primitives (first (.getBytes "x")))))
-  (is (= "Short_99"      (y-without-primitives (short 99))))
-  (is (= "Integer_88"    (y-without-primitives (int 88))))
-  (is (= "Long_77"       (y-without-primitives 77)))
-  (is (= "Float_2.5"     (y-without-primitives (float 2.5))))
-  (is (= "Double_3.5"    (y-without-primitives 3.5)))
-  (is (= "String_z"      (y-without-primitives "z")))
-  (is (thrown-with-msg?  IllegalArgumentException
-                         #"Unrecognised types for tortilla.TestClass.withoutPrimitives"
-                         (y-without-primitives :oops))))
+  (testing "With primitives"
+    (is (= "boolean_1" (x-with-primitives false)))
+    (is (= "char_1"    (x-with-primitives \x)))
+    (is (= "byte_1"    (x-with-primitives (first (.getBytes "x")))))
+    (is (= "short_1"   (x-with-primitives (short 99))))
+    (is (= "int_1"     (x-with-primitives (int 88))))
+    (is (= "long_1"    (x-with-primitives 77)))
+    (is (= "float_1"   (x-with-primitives (float 2.5))))
+    (is (= "double_1"  (x-with-primitives 3.5)))
+    (is (= "String_1"  (x-with-primitives "z")))
+    (is (= "String_1"  (x-with-primitives nil)))
+    (is (thrown-with-msg? IllegalArgumentException
+                          #"Unrecognised types for tortilla.TestClass.withPrimitives"
+                          (x-with-primitives :oops))))
+  (testing "Without primitives"
+    (is (= "Boolean_1"   (x-without-primitives false)))
+    (is (= "Character_1" (x-without-primitives \x)))
+    (is (= "Byte_1"      (x-without-primitives (first (.getBytes "x")))))
+    (is (= "Short_1"     (x-without-primitives (short 99))))
+    (is (= "Integer_1"   (x-without-primitives (int 88))))
+    (is (= "Long_1"      (x-without-primitives 77)))
+    (is (= "Float_1"     (x-without-primitives (float 2.5))))
+    (is (= "Double_1"    (x-without-primitives 3.5)))
+    (is (= "String_1"    (x-without-primitives "z")))
+    (is (thrown-with-msg? IllegalArgumentException
+                          #"Unrecognised types for tortilla.TestClass.withoutPrimitives"
+                          (x-without-primitives :oops)))))
 
 (declare tortilla-string-format)
 (declare tortilla-exception-exception)
@@ -154,19 +215,23 @@
 (declare tortilla-file-get-name)
 (deftest more-types
   (testing "Instantiating some more wrappers for better coverage"
-    (is (w/defwrapper String       {:prefix "tortilla-string-"}))
-    (is (= "foo bar 42 0.000001"
-           (tortilla-string-format "foo %s %d %f" "bar" 42 1e-6)))
-    (is (w/defwrapper Exception    {:prefix "tortilla-exception-"}))
-    (is (= "this is a message"
-           (-> "this is a message"
-               tortilla-exception-exception
-               tortilla-exception-get-message)))
-    (is (w/defwrapper System       {:prefix "tortilla-system-"}))
-    (is (= "value"
-           (tortilla-system-get-property "tortilla#a.property-that_doesNot$exist" "value")))
-    (is (w/defwrapper java.io.File {:prefix "tortilla-file-"}))
-    (is (= "some_file"
-           (-> "/path/to/some_file"
-               tortilla-file-file
-               tortilla-file-get-name)))))
+    (testing "java.lang.String.format"
+      (is (w/defwrapper String       {:prefix "tortilla-string-"}))
+      (is (= "foo bar 42 0.000001"
+             (tortilla-string-format "foo %s %d %f" "bar" 42 1e-6))))
+    (testing "java.lang.Exception.getMessage"
+      (is (w/defwrapper Exception    {:prefix "tortilla-exception-"}))
+      (is (= "this is a message"
+             (-> "this is a message"
+                 tortilla-exception-exception
+                 tortilla-exception-get-message))))
+    (testing "java.lang.System.getProperty"
+      (is (w/defwrapper System       {:prefix "tortilla-system-"}))
+      (is (= "value"
+             (tortilla-system-get-property "tortilla#a.property-that_doesNot$exist" "value"))))
+    (testing "java.io.File.getName"
+      (is (w/defwrapper java.io.File {:prefix "tortilla-file-"}))
+      (is (= "some_file"
+             (-> "/path/to/some_file"
+                 tortilla-file-file
+                 tortilla-file-get-name))))))
