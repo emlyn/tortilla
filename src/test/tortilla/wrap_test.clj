@@ -149,9 +149,7 @@
                 (long-array [3 2 1])))))
 
   (testing "testing overlapping types"
-    ;; This one doesn't (yet) work reliably, as it will just take the first matching overload,
-    ;; not necessarily the best match:
-    #_(is (= "baz1_abc"
+    (is (= "baz1_abc"
            (baz "abc")))
     (is (= "baz2_123"
            (baz 123))))

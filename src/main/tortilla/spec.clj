@@ -224,6 +224,27 @@
            (= (-> % :args :member :id)
               (-> % :ret :id))))
 
+(s/fdef w/most-specific-type
+  :args (s/cat :clz1 ::class
+               :clz2 ::class)
+  :ret (s/nilable ::class)
+  :fn #(let [c1 (-> % :args :clz1)
+             c2 (-> % :args :clz2)
+             r (-> % :ret)]
+         (if (= c1 c2)
+           (= r c1 c2)
+           (contains? #{nil c1 c2} r))))
+
+(s/fdef w/most-specific-overloads
+  :args (s/cat :args (s/coll-of any? :min-count 1)
+               :members (s/coll-of ::member :min-count 1))
+  :ret (s/nilable (s/coll-of ::member)))
+
+(s/fdef w/prefer-non-vararg-overloads
+  :args (s/cat :args (s/coll-of any? :min-count 1)
+               :members (s/coll-of ::member))
+  :ret (s/coll-of ::member))
+
 (s/fdef w/select-overload
   :args (s/cat :args (s/coll-of any? :kind any? :min-count 1)
                :matches (s/coll-of (s/nilable ::member)
@@ -234,8 +255,8 @@
                              #(= (-> % :args :args)
                                  (-> % :ret rest)))
             :match (s/and #(-> % :ret first nat-int?)
-                          #(some (partial = (:ret %))
-                                 (-> % :args :matches)))))
+                          #(some (partial = (-> % :ret first))
+                                 (->> % :args :matches (map :id))))))
 
 (s/fdef w/member-invocation
   :args (s/cat :member ::member

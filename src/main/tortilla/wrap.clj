@@ -1,5 +1,6 @@
 (ns tortilla.wrap
-  (:require [clojure.string :as str])
+  (:require [clojure.set :as set]
+            [clojure.string :as str])
   (:import [java.lang.reflect Constructor Method Modifier]))
 
 ;; General
@@ -238,12 +239,50 @@
                                  (parameter-types member)))]
      (assoc member :invocation-args iargs))))
 
+(defn most-specific-type [^Class clz1 ^Class clz2]
+  (cond
+    (.isAssignableFrom clz2 clz1) clz1
+    (.isAssignableFrom clz1 clz2) clz2
+    :else nil))
+
+(defn ^:no-gen most-specific-overloads
+  [args members]
+  (loop [i 0
+         candidates (set members)]
+    (if (or (empty? candidates)
+            (>= i (count args)))
+      candidates
+      (let [types (map #(nth (parameter-types %) i)
+                       members)
+            thistype (reduce #(or (most-specific-type %1 %2)
+                                  (reduced nil)) types)
+            new-cands (filter #(= thistype (nth (parameter-types %) i))
+                              members)]
+        (recur (inc i)
+               (set/intersection candidates (set new-cands)))))))
+
+(defn ^:no-gen prefer-non-vararg-overloads
+  [_args members]
+  (let [{fixarg false vararg true} (group-by member-varargs? members)]
+    (or fixarg vararg)))
+
+(defn invocation-args
+  [member args]
+  (if member
+    (into [(:id member)] (:invocation-args member))
+    (into [-1]           args)))
+
 (defn ^:no-gen select-overload
-  [args matches]
-  (let [{fixarg false vararg true} (group-by member-varargs? (remove nil? matches))]
-    (if-let [match (or (first fixarg) (first vararg))]
-      (into [(:id match)] (:invocation-args match))
-      (into [-1] args))))
+  [args members]
+  (let [members (->> members
+                     (remove nil?)
+                     (prefer-non-vararg-overloads args))]
+    (if (<= (count members) 1)
+      (invocation-args (first members) args)
+      (let [members (most-specific-overloads args members)]
+        (if (<= 1 (count members))
+          (invocation-args (first members) args)
+          (invocation-args nil args))))))
 
 (defn ^:no-gen member-invocation
   [member args & [more-arg]]
