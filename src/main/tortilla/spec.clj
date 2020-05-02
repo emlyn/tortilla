@@ -243,7 +243,7 @@
 (s/fdef w/prefer-non-vararg-overloads
   :args (s/cat :args (s/coll-of any? :min-count 1)
                :members (s/coll-of ::member))
-  :ret (s/coll-of ::member))
+  :ret (s/nilable (s/coll-of ::member)))
 
 (s/fdef w/select-overload
   :args (s/cat :args (s/coll-of any? :kind any? :min-count 1)
