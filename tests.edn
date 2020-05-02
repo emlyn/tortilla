@@ -10,6 +10,7 @@
  :kaocha.spec.test.check/instrument? true
  :kaocha.spec.test.check/check-asserts? true
  :plugins [:kaocha.plugin/print-invocations
+           :kaocha.plugin/orchestra
            :kaocha.plugin/cloverage]
  :cloverage/opts {:output "target/coverage"
                   :html? true
