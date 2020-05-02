@@ -164,7 +164,7 @@
                         class)]
     `(~'ns ~namespace
       (:require [tortilla.wrap]
-                ~@(when coerce [[tortilla.main]]))
+                ~@(when coerce [`[tortilla.main]]))
       ~@(when (seq classes)
           [`(:import ~@classes)]))))
 
