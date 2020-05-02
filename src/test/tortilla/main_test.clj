@@ -38,6 +38,8 @@
             :metadata true
             :instrument true
             :coerce true
+            :namespace nil
+            :unwrap-do true
             :width 80
             :dep '[[foo "1.0"]
                    [bar/baz "2.0"]]}
@@ -64,7 +66,7 @@
                                           "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
-        (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
+        (is (re-find #"(?m)^ *\(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (re-find coerce-check stdout))))
     (testing "Without coercer"
@@ -72,7 +74,7 @@
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
-        (is (re-find #"(?m)^ \(clojure.core/defn" stdout))
+        (is (re-find #"(?m)^ *\(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (not (re-find coerce-check stdout)))))
     (testing "Dynamically adding to classpath"

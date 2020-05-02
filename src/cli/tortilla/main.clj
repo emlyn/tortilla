@@ -51,6 +51,12 @@
     :desc "Exclude members that match REGEX from wrapping"
     :parse-fn re-pattern]
 
+   ["-n" "--namespace NAMESPACE"
+    :desc "Generate ns form at start of output with given name."
+    :parse-fn #(when (not-empty %)
+                 (symbol %))
+    :default nil]
+
    [nil "--[no-]metadata"
     :desc "Include metadata in output."
     :default true]
@@ -61,6 +67,10 @@
 
    [nil "--[no-]coerce"
     :desc "Include coercion function."
+    :default true]
+
+   [nil "--[no-]unwrap-do"
+    :desc "Unwrap 'do' form around defns."
     :default true]
 
    ["-w" "--width CHARS"
@@ -148,6 +158,16 @@
          (or (nil? *filter-out*)
              (not (re-find *filter-out* mstr))))))
 
+(defn ns-form
+  [{:keys [namespace class coerce]}]
+  (let [classes (remove #(re-find #"^java[.]lang[.]" (w/class-name %))
+                        class)]
+    `(~'ns ~namespace
+      (:require [tortilla.wrap]
+                ~@(when coerce [[tortilla.main]]))
+      ~@(when (seq classes)
+          [`(:import ~@classes)]))))
+
 (defn exit
   [code message]
   (when message (println message))
@@ -171,6 +191,9 @@
     (let [options (update options :class
                           (partial mapv #(or (try (Class/forName %) (catch ClassNotFoundException _))
                                              (exit 1 (str "Invalid class: " %)))))]
+      (when (and (:namespace options)
+                 (not (:members options)))
+        (fipp/pprint (ns-form options)))
       (doseq [cls (:class options)]
         (println "\n;; ====" cls "====")
         (binding [*filter-in* (:include options)
@@ -179,10 +202,20 @@
           (if (:members options)
             (doseq [member (w/class-members cls {:filter-fn filter-fn})]
               (println (member-str member)))
-            (fipp/pprint (if (:coerce options)
-                           (macroexpand-1 `(defwrapper ~cls {:coerce coerce
-                                                             :filter-fn filter-fn}))
-                           (macroexpand-1 `(defwrapper ~cls {:coerce nil
-                                                             :filter-fn filter-fn})))
-                         {:print-meta (:metadata options)
-                          :width (:width options)})))))))
+
+            (let [form (if (:coerce options)
+                         (macroexpand-1 `(defwrapper ~cls {:coerce coerce
+                                                           :filter-fn filter-fn}))
+                         (macroexpand-1 `(defwrapper ~cls {:coerce nil
+                                                           :filter-fn filter-fn})))]
+              (if (and (:unwrap-do options)
+                       (seq? form)
+                       (= 'do (first form)))
+                (doseq [fn-form (rest form)]
+                  (println)
+                  (fipp/pprint fn-form
+                               {:print-meta (:metadata options)
+                                :width (:width options)}))
+                (fipp/pprint form
+                             {:print-meta (:metadata options)
+                              :width (:width options)})))))))))
