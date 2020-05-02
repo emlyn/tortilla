@@ -110,13 +110,20 @@
   :args (s/cat :klazz ::class)
   :ret  boolean?)
 
-(s/fdef w/class-symbol
+(s/fdef w/class-repr
   :args (s/cat :klazz (s/with-gen ::class #(s/gen ::non-void-class)))
-  :ret  symbol?
-  :fn   #(if (-> % :args :klazz w/primitive?)
-           (= "TYPE" (-> % :ret name))
-           (= (-> % :ret name)
-              (-> % :args :klazz w/class-name))))
+  :ret  (s/or :sym symbol? :form seq?)
+  :fn   #(cond
+           (-> % :args :klazz w/primitive?)
+           (= "TYPE" (-> % :ret second name))
+
+           (-> % :args :klazz w/array-class?)
+           (-> % :ret second seq?)
+
+           :else
+           (and (-> % :ret second symbol?)
+                (= (-> % :ret second name)
+                   (-> % :args :klazz w/class-name)))))
 
 (s/fdef w/array-class?
   :args (s/cat :klazz ::class)

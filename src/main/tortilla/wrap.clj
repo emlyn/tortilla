@@ -32,23 +32,6 @@
   [^Class klazz]
   (.isPrimitive klazz))
 
-(defn class-symbol
-  [klazz]
-  (let [name (class-name klazz)]
-    (if (primitive? klazz)
-      (case name
-        "byte"    'java.lang.Byte/TYPE
-        "short"   'java.lang.Short/TYPE
-        "int"     'java.lang.Integer/TYPE
-        "long"    'java.lang.Long/TYPE
-        "float"   'java.lang.Float/TYPE
-        "double"  'java.lang.Double/TYPE
-        "char"    'java.lang.Character/TYPE
-        "boolean" 'java.lang.Boolean/TYPE
-        "void"    'java.lang.Void/TYPE
-        (throw (IllegalArgumentException. (str "Unrecognised primitive type: " name))))
-      (symbol name))))
-
 (defn array-class?
   [^Class klazz]
   (.isArray klazz))
@@ -60,6 +43,25 @@
 (defn array-component
   [^Class klazz]
   (.getComponentType klazz))
+
+(defn class-repr
+  [klazz]
+  (if (array-class? klazz)
+    `(array-of ~(class-repr (array-component klazz)))
+    (let [name (class-name klazz)]
+      (if (primitive? klazz)
+        (case name
+          "byte"    'java.lang.Byte/TYPE
+          "short"   'java.lang.Short/TYPE
+          "int"     'java.lang.Integer/TYPE
+          "long"    'java.lang.Long/TYPE
+          "float"   'java.lang.Float/TYPE
+          "double"  'java.lang.Double/TYPE
+          "char"    'java.lang.Character/TYPE
+          "boolean" 'java.lang.Boolean/TYPE
+          "void"    'java.lang.Void/TYPE
+          (throw (IllegalArgumentException. (str "Unrecognised primitive type: " name))))
+        (symbol name)))))
 
 (defn ensure-boxed
   [klazz]
@@ -141,9 +143,9 @@
   `(->MemberInfo ~(or id (:id member))
                  ~(:type member)
                  ~(:name member)
-                 ~(class-symbol (:declaring-class member))
-                 ~(class-symbol (:return-type member))
-                 ~(mapv class-symbol (:raw-parameter-types member))
+                 ~(class-repr (:declaring-class member))
+                 ~(class-repr (:return-type member))
+                 ~(mapv class-repr (:raw-parameter-types member))
                  ~(:raw-parameter-count member)
                  ~(:modifiers member)
                  ~(:invocation-args member)))

@@ -93,13 +93,17 @@
   (is (thrown? IllegalArgumentException (w/compile-time-fn #'unbound-var)))
   (is (thrown? IllegalArgumentException (w/compile-time-fn '(fn [x] (inc x))))))
 
-(deftest class-symbol-test
-  (is (= 'java.lang.Integer/TYPE (w/class-symbol Integer/TYPE)))
-  (is (= 'java.lang.Integer      (w/class-symbol Integer)))
-  (is (= 'java.lang.Void/TYPE    (w/class-symbol Void/TYPE)))
+(deftest class-repr-test
+  (is (= 'java.lang.Integer/TYPE (w/class-repr Integer/TYPE)))
+  (is (= 'java.lang.Integer      (w/class-repr Integer)))
+  (is (= 'java.lang.Void/TYPE    (w/class-repr Void/TYPE)))
   ;; There are no unknown primitive types to use for this test, so skip it:
   #_(is (thrown-with-msg? IllegalArgumentException #"Unrecognised primitive type: "
-                          (w/class-symbol ?))))
+                          (w/class-repr ?)))
+  (is (= `(w/array-of java.lang.Integer/TYPE)
+         (w/class-repr (type (int-array 1)))))
+  (is (= `(w/array-of java.lang.Integer)
+         (w/class-repr (type (into-array [(int 1)]))))))
 
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
