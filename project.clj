@@ -38,7 +38,7 @@
     :source-paths ["src/test"]}
 
    :cli
-   {:dependencies [[org.clojure/tools.cli "0.4.2"]
+   {:dependencies [[org.clojure/tools.cli "1.0.194"]
                    [orchestra "2019.02.06-1"]
                    [expound "0.8.4"]
                    [fipp "0.6.22"]
@@ -55,11 +55,11 @@
    :dev
    [:cli
     {:main tortilla.core
-     :dependencies [[org.clojure/test.check "0.10.0"]]}]
+     :dependencies [[org.clojure/test.check "1.0.0"]]}]
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2019.12.14"]]}
+   {:dependencies [[clj-kondo "2020.05.02"]]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "0.0-565"]
-                   [lambdaisland/kaocha-cloverage "0.0-41"]]}})
+   {:dependencies [[lambdaisland/kaocha "1.0.629"]
+                   [lambdaisland/kaocha-cloverage "1.0-45"]]}})
