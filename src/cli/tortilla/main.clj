@@ -159,14 +159,10 @@
              (not (re-find *filter-out* mstr))))))
 
 (defn ns-form
-  [{:keys [namespace class coerce]}]
-  (let [classes (remove #(re-find #"^java[.]lang[.]" (w/class-name %))
-                        class)]
-    `(~'ns ~namespace
-      (:require [tortilla.wrap]
-                ~@(when coerce [`[tortilla.main]]))
-      ~@(when (seq classes)
-          [`(:import ~@classes)]))))
+  [{:keys [namespace coerce]}]
+  `(~'ns ~namespace
+    (:require [tortilla.wrap]
+              ~@(when coerce [`[tortilla.main]]))))
 
 (defn exit
   [code message]
