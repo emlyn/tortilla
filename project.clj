@@ -62,4 +62,10 @@
 
    :kaocha
    {:dependencies [[lambdaisland/kaocha "1.0.629"]
-                   [lambdaisland/kaocha-cloverage "1.0-45"]]}})
+                   [lambdaisland/kaocha-cloverage "1.0-45"]]}}
+
+  :repositories
+  [["clojars" {:url "https://repo.clojars.org"
+               :creds :gpg}]]
+
+  :deploy-repositories [["releases" :clojars]])
