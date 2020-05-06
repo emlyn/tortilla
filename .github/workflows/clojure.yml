@@ -33,7 +33,7 @@ jobs:
       run: bin/kaocha
 
     - name: CLI test run
-      run: lein run -w 150 -c tortilla.TestClass
+      run: lein run -w 150 -c tortilla.testing.TestClass
 
     - name: Push coverage to Coveralls.io
       run: |
