@@ -32,8 +32,16 @@ jobs:
     - name: Run tests
       run: bin/kaocha
 
-    - name: CLI test run
-      run: lein run -w 150 -c tortilla.testing.TestClass
+    - name: Run CLI and write generated code
+      run: lein run -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
+
+    - name: Run reflection check on generated code
+      run: |
+        lein with-profile +gen check 2>&1 | tee check-gen.out
+        ! grep 'Reflection warning, tortilla/' check-gen.out
+
+    - name: Run lint check on generated code
+      run: lein clj-kondo --lint src/gen
 
     - name: Push coverage to Coveralls.io
       run: |

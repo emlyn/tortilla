@@ -57,6 +57,9 @@
     {:main tortilla.core
      :dependencies [[org.clojure/test.check "1.0.0"]]}]
 
+   :gen
+   {:source-paths ["src/gen"]}
+
    :clj-kondo
    {:dependencies [[clj-kondo "2020.05.02"]]}
 
