@@ -301,14 +301,24 @@
                                        (subvec args (parameter-count member))))
                        (array-of (vararg-type member)))])))
 
+(defn common-supertype
+  [t1 t2]
+  (loop [seen #{}
+         ^Class t1 t1
+         ^Class t2 t2]
+    (cond
+      (= t1 t2) (or t1 Object)
+      (seen t1) t1
+      (seen t2) t2
+      :else     (recur (conj seen t1 t2)
+                       (when t1 (.getSuperclass t1))
+                       (when t2 (.getSuperclass t2))))))
+
 (defn merge-return-types
   [types]
-  (let [t (if (apply = types)
-            (first types)
-            Object)]
-    (if (= Void/TYPE t)
-      Object
-      t)))
+  (->> types
+       (map #(if (= % Void/TYPE) Object %))
+       (reduce common-supertype)))
 
 ;; Generate form for one arity of a member
 (defn ^:no-gen arity-wrapper-form [arity uniadics variadics {:keys [coerce]}]

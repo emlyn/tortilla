@@ -273,7 +273,17 @@
 
 (s/fdef w/merge-return-types
   :args (s/cat :types (s/coll-of ::class :min-count 1))
-  :ret (s/and ::non-void-class))
+  :ret ::non-void-class
+  :fn #(let [args (-> % :args :types)
+             ^Class ret (-> % :ret)]
+         (if (some #{Void/TYPE Object} args)
+           (= Object ret)
+           (or (apply = ret args)
+               ;; if not all args are equal to ret, then ret cannot be primitive,
+               ;; so OK to ensure-boxed here
+               (every? (fn [t]
+                         (.isAssignableFrom ret (w/ensure-boxed t)))
+                       args)))))
 
 (s/fdef w/arity-wrapper-form
   :args (s/cat :arity nat-int?
