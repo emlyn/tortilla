@@ -19,32 +19,45 @@ jobs:
           mvn-
 
     - name: Install dependencies
-      run: lein with-profile +clj-kondo,+kaocha deps
+      run: |
+        set -euo pipefail
+        lein with-profile +clj-kondo,+kaocha deps
 
     - name: Run reflection check
       run: |
+        set -euo pipefail
         lein check 2>&1 | tee check.out
         ! grep 'Reflection warning, tortilla/' check.out
 
     - name: Run lint check
-      run: lein lint
+      run: |
+        set -euo pipefail
+        lein lint
 
     - name: Run tests
-      run: bin/kaocha
+      run: |
+        set -euo pipefail
+        bin/kaocha
 
     - name: Run CLI and write generated code
-      run: lein run -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
+      run: |
+        set -euo pipefail
+        lein run -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
 
     - name: Run reflection check on generated code
       run: |
+        set -euo pipefail
         lein with-profile +gen check 2>&1 | tee check-gen.out
         ! grep 'Reflection warning, tortilla/' check-gen.out
 
     - name: Run lint check on generated code
-      run: lein clj-kondo --lint src/gen
+      run: |
+        set -euo pipefail
+        lein clj-kondo --lint src/gen
 
     - name: Push coverage to Coveralls.io
       run: |
+        set -euo pipefail
         bin/fixup_paths.sh
         PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
         bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
