@@ -1,5 +1,6 @@
 (ns tortilla.main
   (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.tools.cli :refer [parse-opts]]
@@ -56,6 +57,9 @@
     :parse-fn #(when (not-empty %)
                  (symbol %))
     :default nil]
+
+   ["-o" "--out FILE"
+    :desc "Write generated output to FILE"]
 
    [nil "--[no-]metadata"
     :desc "Include metadata in output."
@@ -164,6 +168,40 @@
     (:require [tortilla.wrap]
               ~@(when coerce [`[tortilla.main]]))))
 
+(defn print-class-form
+  [cls {:keys [include exclude members coerce unwrap-do metadata width]}]
+  (println "\n;; ====" cls "====")
+  (binding [*filter-in* include
+            *filter-out* exclude
+            s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
+    (if members
+      (doseq [member (w/class-members cls {:filter-fn filter-fn})]
+        (println (member-str member)))
+      (let [form (if coerce
+                   (macroexpand-1 `(defwrapper ~cls {:coerce coerce
+                                                     :filter-fn filter-fn}))
+                   (macroexpand-1 `(defwrapper ~cls {:coerce nil
+                                                     :filter-fn filter-fn})))]
+        (if (and unwrap-do
+                 (seq? form)
+                 (= 'do (first form)))
+          (doseq [fn-form (rest form)]
+            (println)
+            (fipp/pprint fn-form
+                         {:print-meta metadata
+                          :width width}))
+          (fipp/pprint form
+                       {:print-meta metadata
+                        :width width}))))))
+
+(defn print-output
+  [options]
+  (when (and (:namespace options)
+             (not (:members options)))
+    (fipp/pprint (ns-form options)))
+  (doseq [cls (:class options)]
+    (print-class-form cls options)))
+
 (defn exit
   [code message]
   (when message (println message))
@@ -183,35 +221,15 @@
                         :repositories (merge maven-central
                                              {"clojars" "https://clojars.org/repo"})
                         :classloader @clojure.lang.Compiler/LOADER))
-
+    ;; Now map class names to Class instances. We couldn't do this earlier
+    ;; (e.g. in a cli parse-fn) because they might come from a dynamically
+    ;; loaded dependency.
     (let [options (update options :class
-                          (partial mapv #(or (try (Class/forName %) (catch ClassNotFoundException _))
+                          (partial mapv #(or (try (Class/forName %)
+                                                  (catch ClassNotFoundException _))
                                              (exit 1 (str "Invalid class: " %)))))]
-      (when (and (:namespace options)
-                 (not (:members options)))
-        (fipp/pprint (ns-form options)))
-      (doseq [cls (:class options)]
-        (println "\n;; ====" cls "====")
-        (binding [*filter-in* (:include options)
-                  *filter-out* (:exclude options)
-                  s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
-          (if (:members options)
-            (doseq [member (w/class-members cls {:filter-fn filter-fn})]
-              (println (member-str member)))
-
-            (let [form (if (:coerce options)
-                         (macroexpand-1 `(defwrapper ~cls {:coerce coerce
-                                                           :filter-fn filter-fn}))
-                         (macroexpand-1 `(defwrapper ~cls {:coerce nil
-                                                           :filter-fn filter-fn})))]
-              (if (and (:unwrap-do options)
-                       (seq? form)
-                       (= 'do (first form)))
-                (doseq [fn-form (rest form)]
-                  (println)
-                  (fipp/pprint fn-form
-                               {:print-meta (:metadata options)
-                                :width (:width options)}))
-                (fipp/pprint form
-                             {:print-meta (:metadata options)
-                              :width (:width options)})))))))))
+      (if-let [out-file (:out options)]
+        (do (io/make-parents out-file)
+            (spit out-file
+                  (with-out-str (print-output options))))
+        (print-output options)))))

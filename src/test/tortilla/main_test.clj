@@ -62,21 +62,32 @@
         (is (not (re-find #"(?m)longValue\(java.lang.Number\):long" stdout)))
         (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
-      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200"
-                                          "-c" "java.lang.Object" "-c" "java.lang.Number"))]
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do"
+                                          "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ *\(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (re-find coerce-check stdout))))
     (testing "Without coercer"
-      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-coerce"
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do" "--no-coerce"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
         (is (re-find #"(?m)^ *\(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (not (re-find coerce-check stdout)))))
+    (testing "Writing to file"
+      (let [temp (.getPath
+                  (doto (java.io.File/createTempFile "tortilla_test" ".clj")
+                    .delete))
+            _ (m/-main "--no-instrument" "--no-coerce"
+                       "-c" "tortilla.testing.TestClass"
+                       "-n" "tortilla.test-class"
+                       "-o" temp)
+            stdout (slurp temp)]
+        (is (re-find #"(?m)^\(ns tortilla.test-class" stdout))
+        (is (re-find #"(?m)^;; =+ tortilla.testing.TestClass =+$" stdout))))
     (testing "Dynamically adding to classpath"
       (let [stdout (with-out-str (m/-main "--no-instrument"
                                           "-d" "org.jblas:jblas:1.2.4"
