@@ -202,6 +202,15 @@
   (doseq [cls (:class options)]
     (print-class-form cls options)))
 
+(defn load-deps
+  [coords]
+  (println "Adding dependencies to classpath: " coords)
+  (ensure-compiler-loader)
+  (add-dependencies :coordinates coords
+                    :repositories (merge maven-central
+                                         {"clojars" "https://clojars.org/repo"})
+                    :classloader @clojure.lang.Compiler/LOADER))
+
 (defn exit
   [code message]
   (when message (println message))
@@ -215,12 +224,7 @@
     (when (:instrument options)
       (st/instrument))
     (when-let [dep (:dep options)]
-      (println "Adding dependencies to classpath: " dep)
-      (ensure-compiler-loader)
-      (add-dependencies :coordinates dep
-                        :repositories (merge maven-central
-                                             {"clojars" "https://clojars.org/repo"})
-                        :classloader @clojure.lang.Compiler/LOADER))
+      (load-deps dep))
     ;; Now map class names to Class instances. We couldn't do this earlier
     ;; (e.g. in a cli parse-fn) because they might come from a dynamically
     ;; loaded dependency.
@@ -230,6 +234,5 @@
                                              (exit 1 (str "Invalid class: " %)))))]
       (if-let [out-file (:out options)]
         (do (io/make-parents out-file)
-            (spit out-file
-                  (with-out-str (print-output options))))
+            (spit out-file (with-out-str (print-output options))))
         (print-output options)))))
