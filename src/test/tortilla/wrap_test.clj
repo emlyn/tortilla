@@ -170,13 +170,13 @@
 
     (testing "Bad argument types cause an exception"
       (is (thrown-with-msg? IllegalArgumentException
-                            #"Unrecognised types for tortilla.testing.TestClass.foo: clojure.lang.Keyword"
+                            #"Unrecognised types for tortilla.testing.TestClass::foo: clojure.lang.Keyword"
                             (foo :x)))
       (is (thrown-with-msg? IllegalArgumentException
-                            #"Unrecognised types for tortilla.testing.TestClass.foo: tortilla.testing.TestClass, java.lang.Long, java.lang.String"
+                            #"Unrecognised types for tortilla.testing.TestClass::foo: tortilla.testing.TestClass, java.lang.Long, java.lang.String"
                             (foo tc 123 "456")))
       (is (thrown-with-msg? IllegalArgumentException
-                            #"Unrecognised types for tortilla.testing.TestClass.foo: tortilla.testing.TestClass, java.lang.String, java.lang.String, java.lang.String, java.lang.Long"
+                            #"Unrecognised types for tortilla.testing.TestClass::foo: tortilla.testing.TestClass, java.lang.String, java.lang.String, java.lang.String, java.lang.Long"
                             (foo tc "1" "2" "3" 4))))))
 
 (declare x-with-primitives)
@@ -195,7 +195,7 @@
     (is (= "String_1"  (x-with-primitives "z")))
     (is (= "String_1"  (x-with-primitives nil)))
     (is (thrown-with-msg? IllegalArgumentException
-                          #"Unrecognised types for tortilla.testing.TestClass.withPrimitives"
+                          #"Unrecognised types for tortilla.testing.TestClass::withPrimitives"
                           (x-with-primitives :oops))))
   (testing "Without primitives"
     (is (= "Boolean_1"   (x-without-primitives false)))
@@ -208,7 +208,7 @@
     (is (= "Double_1"    (x-without-primitives 3.5)))
     (is (= "String_1"    (x-without-primitives "z")))
     (is (thrown-with-msg? IllegalArgumentException
-                          #"Unrecognised types for tortilla.testing.TestClass.withoutPrimitives"
+                          #"Unrecognised types for tortilla.testing.TestClass::withoutPrimitives"
                           (x-without-primitives :oops)))))
 
 (declare tortilla-string-format)

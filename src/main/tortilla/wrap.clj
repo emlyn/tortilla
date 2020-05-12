@@ -150,6 +150,12 @@
                  ~(:modifiers member)
                  ~(:invocation-args member)))
 
+(defn member-name
+  [member]
+  (str (class-name (:declaring-class member))
+       "::"
+       (:name member)))
+
 (defn member-info
   [member]
   (to-member-info member))
@@ -340,9 +346,7 @@
                                        ~arg-vec
                                        ~@(when coerce [coerce])))]
               ~(member-invocation mem arg-vec)
-              (type-error ~(str (-> mem :declaring-class class-name) \.
-                                (-> mem :name))
-                          ~@arg-vec))
+              (type-error ~(member-name mem) ~@arg-vec))
            `(let [~arg-sym ~arg-vec
                   [id# ~@arg-vec]
                   (select-overload
@@ -355,9 +359,7 @@
                             [id (member-invocation mem arg-vec)])
                           (range)
                           members)
-                (type-error ~(str (-> members first :declaring-class class-name) \.
-                                  (-> members first :name))
-                            ~@arg-vec))))))))
+                (type-error ~(member-name (first members)) ~@arg-vec))))))))
 
 ;; Generate form for the highest/variadic arity of a member
 (defn ^:no-gen variadic-wrapper-form [min-arity members {:keys [coerce]}]
@@ -375,10 +377,7 @@
                                      (into ~fix-args ~more-arg)
                                      ~@(when coerce [coerce])))]
             ~(member-invocation mem fix-args more-arg)
-            (apply type-error ~(str (-> mem :declaring-class class-name) \.
-                                    (-> mem :name))
-                   ~@fix-args
-                   ~more-arg))
+            (apply type-error ~(member-name mem) ~@fix-args ~more-arg))
          `(let [~arg-sym (into ~fix-args ~more-arg)
                 [id# ~@arg-vec]
                 (select-overload
@@ -391,10 +390,7 @@
                           [id (member-invocation mem fix-args more-arg)])
                         (range)
                         members)
-              (apply type-error ~(str (-> members first :declaring-class class-name) \.
-                                      (-> members first :name))
-                     ~@fix-args
-                     ~more-arg)))))))
+              (apply type-error ~(member-name (first members)) ~@fix-args ~more-arg)))))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
