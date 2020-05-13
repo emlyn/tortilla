@@ -61,6 +61,9 @@
     {:dependencies [[org.clojure/clojure "1.10.1"]]
      :aot :all}]
 
+   :dev
+   [:cli]
+
    :gen
    {:source-paths ["src/gen"]}
 
