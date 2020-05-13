@@ -39,27 +39,29 @@
   [["-c" "--class CLASS"
     :desc "Class to generate a wrapper. May be specified multiple times."
     :default []
+    :default-desc ""
     :assoc-fn (fn [m k v] (update m k conj v))]
 
    ["-m" "--members"
-    :desc "Print list of class members instead of wrapper code"]
+    :desc "Print list of class members instead of wrapper code (useful for checking -i/-x)."]
 
    ["-i" "--include REGEX"
     :desc "Only wrap members that match REGEX. Match members in format name(arg1.type,arg2.type):return.type"
     :parse-fn re-pattern]
 
    ["-x" "--exclude REGEX"
-    :desc "Exclude members that match REGEX from wrapping"
+    :desc "Exclude members that match REGEX from wrapping."
     :parse-fn re-pattern]
 
    ["-n" "--namespace NAMESPACE"
     :desc "Generate ns form at start of output with given name."
     :parse-fn #(when (not-empty %)
                  (symbol %))
-    :default nil]
+    :default nil
+    :default-desc ""]
 
    ["-o" "--out FILE"
-    :desc "Write generated output to FILE"]
+    :desc "Write generated output to FILE."]
 
    [nil "--[no-]metadata"
     :desc "Include metadata in output."
@@ -91,7 +93,8 @@
     :parse-fn parse-coords
     :assoc-fn (fn [m k v] (update m k (fnil conj []) v))]
 
-   ["-h" "--help"]])
+   ["-h" "--help"
+    :desc "Display this help."]])
 
 (defn message
   [summary & [error]]
@@ -232,7 +235,7 @@
                           (partial mapv #(or (try (Class/forName %)
                                                   (catch ClassNotFoundException _))
                                              (exit 1 (str "Invalid class: " %)))))]
-      (if-let [out-file (:out options)]
+      (if-let [out-file (not-empty (:out options))]
         (do (io/make-parents out-file)
             (spit out-file (with-out-str (print-output options))))
         (print-output options)))))
