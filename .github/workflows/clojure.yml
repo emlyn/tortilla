@@ -55,14 +55,14 @@ jobs:
         set -euo pipefail
         lein clj-kondo --lint src/gen
 
-    - name: Build binary
-      run: |
-        set -euo pipefail
-        lein bin
-
     - name: Push coverage to Coveralls.io
       run: |
         set -euo pipefail
         bin/fixup_paths.sh
         PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
         bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
+
+    - name: Build binary
+      run: |
+        set -euo pipefail
+        lein bin
