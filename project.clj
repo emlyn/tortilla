@@ -43,7 +43,8 @@
                    [orchestra "2019.02.06-1"]
                    [expound "0.8.4"]
                    [fipp "0.6.22"]
-                   [com.cemerick/pomegranate "1.1.0"]]
+                   [com.cemerick/pomegranate "1.1.0"]
+                   [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
     :java-source-paths ["src/java"]
     :main tortilla.main}

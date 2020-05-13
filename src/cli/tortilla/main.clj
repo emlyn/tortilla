@@ -10,7 +10,8 @@
             [fipp.clojure :as fipp]
             [orchestra.spec.test :as st]
             [tortilla.wrap :as w :refer [defwrapper]]
-            [tortilla.spec])
+            [tortilla.spec]
+            [trptcolin.versioneer.core :as version])
   (:gen-class))
 
 (defprotocol Coercer
@@ -93,6 +94,9 @@
     :parse-fn parse-coords
     :assoc-fn (fn [m k v] (update m k (fnil conj []) v))]
 
+   ["-v" "--version"
+    :desc "Display version information."]
+
    ["-h" "--help"
     :desc "Display this help."]])
 
@@ -124,7 +128,13 @@
       {:exit 1
        :message (message summary "Options must start with a hyphen")}
 
-      (not (seq (:class options)))
+      (:version options)
+      {:exit 0
+       :message (format "Tortilla version %s (%s)"
+                        (version/get-version "emlyn" "tortilla" "unknown")
+                        (subs (version/get-revision "emlyn" "tortilla" "unknown") 0 7))}
+
+      (empty (:class options))
       {:exit 1
        :message (message summary "Must supply at least one class to wrap")}
 
