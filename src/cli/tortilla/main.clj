@@ -134,7 +134,7 @@
                         (version/get-version "emlyn" "tortilla" "unknown")
                         (subs (version/get-revision "emlyn" "tortilla" "unknown") 0 7))}
 
-      (empty (:class options))
+      (empty? (:class options))
       {:exit 1
        :message (message summary "Must supply at least one class to wrap")}
 
