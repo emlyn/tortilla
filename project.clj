@@ -21,6 +21,8 @@
   :aliases
   {"run" ["with-profile" "+cli" "run"]
 
+   "bin" ["with-profile" "uberjar" "bin"]
+
    "check" ["with-profile" "+checks" "check"]
 
    "clj-kondo" ["with-profile" "+clj-kondo" "run" "-m" "clj-kondo.main"]
@@ -28,6 +30,11 @@
 
    "kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
    "test" ["kaocha"]}
+
+  :plugins [[lein-bin "0.3.5"]]
+
+  :bin {:name "tortilla"
+        :bin-path "./bin"}
 
   :profiles
   {:provided
