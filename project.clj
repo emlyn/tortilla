@@ -39,6 +39,7 @@
 
    :cli
    {:dependencies [[org.clojure/tools.cli "1.0.194"]
+                   [org.clojure/test.check "1.0.0"]
                    [orchestra "2019.02.06-1"]
                    [expound "0.8.4"]
                    [fipp "0.6.22"]
@@ -51,11 +52,6 @@
    [:cli
     {:dependencies [[org.clojure/clojure "1.10.1"]]
      :aot :all}]
-
-   :dev
-   [:cli
-    {:main tortilla.core
-     :dependencies [[org.clojure/test.check "1.0.0"]]}]
 
    :gen
    {:source-paths ["src/gen"]}
