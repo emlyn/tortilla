@@ -55,6 +55,11 @@ jobs:
         set -euo pipefail
         lein clj-kondo --lint src/gen
 
+    - name: Build binary
+      run: |
+        set -euo pipefail
+        lein bin
+
     - name: Push coverage to Coveralls.io
       run: |
         set -euo pipefail
