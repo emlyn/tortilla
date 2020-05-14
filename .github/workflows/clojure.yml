@@ -39,10 +39,22 @@ jobs:
         set -euo pipefail
         bin/kaocha
 
+    - name: Push coverage to Coveralls.io
+      run: |
+        set -euo pipefail
+        bin/fixup_paths.sh
+        PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
+        bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
+
+    - name: Build CLI binary
+      run: |
+        set -euo pipefail
+        lein bin
+
     - name: Run CLI and write generated code
       run: |
         set -euo pipefail
-        lein run -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
+        ./bin/tortilla -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
 
     - name: Run reflection check on generated code
       run: |
@@ -54,15 +66,3 @@ jobs:
       run: |
         set -euo pipefail
         lein clj-kondo --lint src/gen
-
-    - name: Push coverage to Coveralls.io
-      run: |
-        set -euo pipefail
-        bin/fixup_paths.sh
-        PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
-        bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
-
-    - name: Build binary
-      run: |
-        set -euo pipefail
-        lein bin
