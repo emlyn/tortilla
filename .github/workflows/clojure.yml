@@ -51,6 +51,11 @@ jobs:
         set -euo pipefail
         lein bin
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: tortilla
+        path: bin/tortilla
+
     - name: Run CLI and write generated code
       run: |
         set -euo pipefail
