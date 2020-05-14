@@ -27,6 +27,10 @@
 (deftest validate-args-test
   (testing "Help option exits with 0"
     (is (= 0 (:exit (m/validate-args ["-h"])))))
+  (testing "Version"
+    (let [{:keys [exit message]} (m/validate-args ["--version"])]
+      (is (= 0 exit))
+      (is (re-find #"Tortilla version [0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)? \([0-9a-f]+\)" message))))
   (testing "No options causes an error"
     (is (= 1 (:exit (m/validate-args [])))))
   (testing "Invalid option causes an error"
