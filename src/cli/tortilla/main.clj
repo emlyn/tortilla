@@ -66,6 +66,10 @@
     :default nil
     :default-desc ""]
 
+   ["-p" "--prefix PREFIX"
+    :desc "Prefix generated function names (useful to avoid conflicts with clojure.core names.)"
+    :default ""]
+
    ["-o" "--out FILE"
     :desc "Write generated output to FILE."]
 
@@ -191,9 +195,10 @@
      ~@body))
 
 (defn class-form
-  [cls {:keys [include exclude coerce]}]
+  [cls {:keys [include exclude coerce prefix]}]
   (with-filter [include exclude]
     (macroexpand-1 `(defwrapper ~cls {:coerce ~coerce
+                                      :prefix ~prefix
                                       :filter-fn filter-fn}))))
 
 (defn print-class-form

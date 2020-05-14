@@ -38,6 +38,7 @@
             :metadata true
             :instrument true
             :coerce nil
+            :prefix ""
             :namespace nil
             :unwrap-do true
             :width 80
@@ -85,10 +86,12 @@
             _ (m/-main "--no-instrument"
                        "-c" "tortilla.testing.TestClass"
                        "-n" "tortilla.testing.test-class"
+                       "-p" "prefix-"
                        "-o" temp)
             stdout (slurp temp)]
         (is (re-find #"(?m)^\(ns tortilla.testing.test-class" stdout))
-        (is (re-find #"(?m)^;; =+ tortilla.testing.TestClass =+$" stdout))))
+        (is (re-find #"(?m)^;; =+ tortilla.testing.TestClass =+$" stdout))
+        (is (re-find #"(?m)defn prefix-foo" stdout))))
     (testing "Dynamically adding to classpath"
       (let [stdout (with-out-str (m/-main "--no-instrument"
                                           "-d" "org.jblas:jblas:1.2.4"
