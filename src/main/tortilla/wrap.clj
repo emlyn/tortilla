@@ -457,15 +457,13 @@
   [prefix member]
   (->> member :name camel->kebab (str prefix) symbol))
 
-(defmacro defwrapper [klazz {:keys [prefix coerce] :as opts}]
+(defmacro defwrapper [klazz {:keys [prefix] :as opts}]
   (let [klazz (cond-> klazz (symbol? klazz) resolve)
         members (group-by (partial function-sym prefix)
                           (class-members klazz opts))]
     `(do
        ~@(for [[fname membs] members]
-           (member-wrapper-form fname membs (assoc opts :coerce (if (symbol? coerce)
-                                                                  (resolve coerce)
-                                                                  coerce)))))))
+           (member-wrapper-form fname membs opts)))))
 
 (defn- defwrapperfn
   "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"

@@ -56,8 +56,13 @@
 
    ["-n" "--namespace NAMESPACE"
     :desc "Generate ns form at start of output with given name."
-    :parse-fn #(when (not-empty %)
-                 (symbol %))
+    :parse-fn #(when-not (empty? %) (symbol %))
+    :default nil
+    :default-desc ""]
+
+   [nil "--coerce SYMBOL"
+    :desc "Enable coercion using the function named by SYMBOL."
+    :parse-fn #(when-not (empty? %) (symbol %))
     :default nil
     :default-desc ""]
 
@@ -70,10 +75,6 @@
 
    [nil "--[no-]instrument"
     :desc "Instrument specs."
-    :default true]
-
-   [nil "--[no-]coerce"
-    :desc "Include coercion function."
     :default true]
 
    [nil "--[no-]unwrap-do"
@@ -179,33 +180,41 @@
   [{:keys [namespace coerce]}]
   `(~'ns ~namespace
     (:require [tortilla.wrap]
-              ~@(when coerce [`[tortilla.main]]))))
+              ~@(when-let [coerce-ns (and coerce (symbol (clojure.core/namespace coerce)))]
+                  [[coerce-ns]]))))
+
+(defmacro with-filter
+  [[include exclude] & body]
+  `(binding [*filter-in* ~include
+             *filter-out* ~exclude
+             s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
+     ~@body))
+
+(defn class-form
+  [cls {:keys [include exclude coerce]}]
+  (with-filter [include exclude]
+    (macroexpand-1 `(defwrapper ~cls {:coerce ~coerce
+                                      :filter-fn filter-fn}))))
 
 (defn print-class-form
-  [cls {:keys [include exclude members coerce unwrap-do metadata width]}]
+  [cls {:keys [include exclude members unwrap-do metadata width] :as options}]
   (println "\n;; ====" cls "====")
-  (binding [*filter-in* include
-            *filter-out* exclude
-            s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
-    (if members
+  (if members
+    (with-filter [include exclude]
       (doseq [member (w/class-members cls {:filter-fn filter-fn})]
-        (println (member-str member)))
-      (let [form (if coerce
-                   (macroexpand-1 `(defwrapper ~cls {:coerce coerce
-                                                     :filter-fn filter-fn}))
-                   (macroexpand-1 `(defwrapper ~cls {:coerce nil
-                                                     :filter-fn filter-fn})))]
-        (if (and unwrap-do
-                 (seq? form)
-                 (= 'do (first form)))
-          (doseq [fn-form (rest form)]
-            (println)
-            (fipp/pprint fn-form
-                         {:print-meta metadata
-                          :width width}))
-          (fipp/pprint form
+        (println (member-str member))))
+    (let [form (class-form cls options)]
+      (if (and unwrap-do
+               (seq? form)
+               (= 'do (first form)))
+        (doseq [fn-form (rest form)]
+          (println)
+          (fipp/pprint fn-form
                        {:print-meta metadata
-                        :width width}))))))
+                        :width width}))
+        (fipp/pprint form
+                     {:print-meta metadata
+                      :width width})))))
 
 (defn print-output
   [options]

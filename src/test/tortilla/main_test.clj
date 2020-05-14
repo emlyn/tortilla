@@ -37,7 +37,7 @@
     (is (= {:class ["java.lang.Number" "java.lang.String"]
             :metadata true
             :instrument true
-            :coerce true
+            :coerce nil
             :namespace nil
             :unwrap-do true
             :width 80
@@ -47,7 +47,7 @@
                              "-d" "foo:1.0" "-d" "[bar/baz \"2.0\"]"])))))
 
 (deftest main-test
-  (let [coerce-check #"#'tortilla.main/coerce"]
+  (let [coerce-check #"\btortilla.main/coerce\b"]
     (testing "Listing members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "java.lang.Number" "--members"))]
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -63,6 +63,7 @@
         (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do"
+                                          "--coerce" "tortilla.main/coerce"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -70,7 +71,7 @@
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (re-find coerce-check stdout))))
     (testing "Without coercer"
-      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do" "--no-coerce"
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -81,12 +82,12 @@
       (let [temp (.getPath
                   (doto (java.io.File/createTempFile "tortilla_test" ".clj")
                     .delete))
-            _ (m/-main "--no-instrument" "--no-coerce"
+            _ (m/-main "--no-instrument"
                        "-c" "tortilla.testing.TestClass"
-                       "-n" "tortilla.test-class"
+                       "-n" "tortilla.testing.test-class"
                        "-o" temp)
             stdout (slurp temp)]
-        (is (re-find #"(?m)^\(ns tortilla.test-class" stdout))
+        (is (re-find #"(?m)^\(ns tortilla.testing.test-class" stdout))
         (is (re-find #"(?m)^;; =+ tortilla.testing.TestClass =+$" stdout))))
     (testing "Dynamically adding to classpath"
       (let [stdout (with-out-str (m/-main "--no-instrument"
