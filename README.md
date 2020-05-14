@@ -8,7 +8,7 @@
 [![Build](https://github.com/emlyn/tortilla/workflows/Build/badge.svg)](https://github.com/emlyn/tortilla/actions?query=workflow%3ABuild)
 [![Coverage Status](https://coveralls.io/repos/github/emlyn/tortilla/badge.svg?branch=HEAD)](https://coveralls.io/github/emlyn/tortilla?branch=HEAD)
 [![Dependencies Status](https://versions.deps.co/emlyn/tortilla/status.svg)](https://versions.deps.co/emlyn/tortilla)
-<!-- [![Downloads](https://img.shields.io/clojars/dt/emlyn/tortilla.svg)](https://clojars.org/emlyn/tortilla) -->
+[![Downloads](https://img.shields.io/clojars/dt/emlyn/tortilla.svg)](https://clojars.org/emlyn/tortilla)
 
 ## Introduction
 
@@ -39,17 +39,33 @@ generqte the wrapper functions at compile time, or as a command-line interface (
 that you run before to generate Clojure source files that you then build with the
 rest of your code. There are pros and cons to both approaches.
 
-### Macro
+### Installation
+
+#### Macro
 
 Add Tortilla as a dependency to your project.
 The latest version is:
 
 [![Clojars Project](https://clojars.org/emlyn/tortilla/latest-version.svg)](https://clojars.org/emlyn/tortilla)
 
-### CLI
+#### CLI
 
 You can download the latest CLI executable from [github](//github.com/emlyn/tortilla/releases),
 or build it from source with `lein bin` in a clone of this repository.
+
+#### Pros & Cons
+
+- Macro mode can adapt to different versions of the wrapped Java library automatically,
+just by changing the dependency.
+- Macro mode doesn't require a separate step to generate any Clojure wrapper source files,
+as everything happens during the normal build process.
+- CLI mode is easier to debug, as the generated source is available to inspect.
+- CLI mode generates better error messages, since they can refer to lines in the generated code.
+- others...?
+
+### Filtering
+
+### Coercion
 
 ## Inspiration
 
