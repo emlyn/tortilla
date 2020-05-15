@@ -31,7 +31,7 @@
    "kaocha" ["with-profile" "+kaocha" "run" "-m" "kaocha.runner"]
    "test" ["kaocha"]}
 
-  :plugins [[lein-bin "0.3.5"]]
+  :plugins [[lein-binplus "0.6.6"]]
 
   :bin {:name "tortilla"
         :bin-path "./bin"}
