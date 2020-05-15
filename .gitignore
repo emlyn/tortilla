@@ -1,6 +1,7 @@
 /target
 /classes
 /checkouts
+/bin/tortilla
 profiles.clj
 pom.xml
 pom.xml.asc
@@ -9,4 +10,5 @@ pom.xml.asc
 /.lein-*
 /.nrepl-port
 .hgignore
+.DS_Store
 .hg/
