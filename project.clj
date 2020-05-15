@@ -49,7 +49,7 @@
                    [org.clojure/test.check "1.0.0"]
                    [orchestra "2019.02.06-1"]
                    [expound "0.8.4"]
-                   [fipp "0.6.22"]
+                   [fipp "0.6.23"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
@@ -67,7 +67,7 @@
                    [org.clojure/test.check "1.0.0"]
                    [orchestra "2019.02.06-1"]
                    [expound "0.8.4"]
-                   [fipp "0.6.22"]
+                   [fipp "0.6.23"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
@@ -78,10 +78,10 @@
    {:source-paths ["src/gen"]}
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2020.05.02"]]}
+   {:dependencies [[clj-kondo "2020.05.09"]]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "1.0.629"]
+   {:dependencies [[lambdaisland/kaocha "1.0.632"]
                    [lambdaisland/kaocha-cloverage "1.0-45"]]}}
 
   :deploy-repositories
