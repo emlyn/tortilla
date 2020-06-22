@@ -462,7 +462,7 @@
         members (group-by (partial function-sym prefix)
                           (class-members klazz opts))]
     `(do
-       ~@(for [[fname membs] members]
+       ~@(for [[fname membs] (sort members)]
            (member-wrapper-form fname membs opts)))))
 
 (defn- defwrapperfn

@@ -206,8 +206,11 @@
   (println "\n;; ====" cls "====")
   (if members
     (with-filter [include exclude]
-      (doseq [member (w/class-members cls {:filter-fn filter-fn})]
-        (println (member-str member))))
+      (->> (w/class-members cls {:filter-fn filter-fn})
+           (map member-str)
+           (sort)
+           (map println)
+           (doall)))
     (let [form (class-form cls options)]
       (if (and unwrap-do
                (seq? form)
