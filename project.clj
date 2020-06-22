@@ -78,7 +78,7 @@
    {:source-paths ["src/gen"]}
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2020.05.09"]]}
+   {:dependencies [[clj-kondo "2020.06.12"]]}
 
    :kaocha
    {:dependencies [[lambdaisland/kaocha "1.0.632"]
