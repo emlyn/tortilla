@@ -256,9 +256,9 @@
     ;; (e.g. in a cli parse-fn) because they might come from a dynamically
     ;; loaded dependency.
     (let [options (update options :class
-                          (partial mapv #(or (try (Class/forName %)
-                                                  (catch ClassNotFoundException _))
-                                             (exit 1 (str "Invalid class: " %)))))]
+                          (partial mapv #(try (Class/forName %)
+                                              (catch ClassNotFoundException _
+                                                (exit 1 (str "Invalid class: " %))))))]
       (if-let [out-file (not-empty (:out options))]
         (do (io/make-parents out-file)
             (spit out-file (with-out-str (print-output options))))
