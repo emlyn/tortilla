@@ -57,9 +57,19 @@
     :main tortilla.main}
 
    :uberjar
-   [:cli
-    {:dependencies [[org.clojure/clojure "1.10.1"]]
-     :aot :all}]
+   ;; duplicate :cli deps to workaround technomancy/leiningen#2683
+   {:dependencies [[org.clojure/clojure "1.10.1"]
+                   [org.clojure/tools.cli "1.0.194"]
+                   [org.clojure/test.check "1.0.0"]
+                   [orchestra "2019.02.06-1"]
+                   [expound "0.8.5"]
+                   [fipp "0.6.23"]
+                   [com.cemerick/pomegranate "1.1.0"]
+                   [trptcolin/versioneer "0.2.0"]]
+    :source-paths ["src/cli"]
+    :java-source-paths ["src/java"]
+    :main tortilla.main
+    :aot [tortilla.main]}
 
    :dev
    ;; [:cli] Have to duplicate :cli profile due to technomancy/leiningen#2683
