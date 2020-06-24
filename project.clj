@@ -14,6 +14,8 @@
   :source-paths ["src/main"]
   :test-paths ["src/test"]
 
+  :target-path "target/%s/"
+
   :repl-options {:init-ns tortilla.wrap-test}
 
   :deploy-branches ["master"]
