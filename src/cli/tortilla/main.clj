@@ -262,7 +262,7 @@
     ;; loaded dependency.
     (let [loader (load-deps (:dep options))
           options (update options :class
-                          (partial mapv #(try (.loadClass loader %)
+                          (partial mapv #(try (.loadClass ^ClassLoader loader %)
                                               (catch ClassNotFoundException _
                                                 (exit 1 (str "Invalid class: " %))))))]
       (if-let [out-file (not-empty (:out options))]
