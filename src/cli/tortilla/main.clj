@@ -146,13 +146,6 @@
       :else
       options)))
 
-(defn ensure-compiler-loader
-  "Ensures the clojure.lang.Compiler/LOADER var is bound to a DynamicClassLoader,
-  so that we can add to Clojure's classpath dynamically."
-  []
-  (when-not (bound? Compiler/LOADER)
-    (.bindRoot Compiler/LOADER (clojure.lang.DynamicClassLoader. (clojure.lang.RT/baseLoader)))))
-
 (defn member-str
   [member]
   (str (:name member)
@@ -232,14 +225,26 @@
   (doseq [cls (:class options)]
     (print-class-form cls options)))
 
+(defn ensure-compiler-loader
+  "Ensures the clojure.lang.Compiler/LOADER var is bound to a DynamicClassLoader,
+  so that we can add to Clojure's classpath dynamically."
+  []
+  (when-not (bound? Compiler/LOADER)
+    (.bindRoot Compiler/LOADER
+               (let [base (clojure.lang.RT/baseLoader)]
+                 (if (instance? clojure.lang.DynamicClassLoader base)
+                   base
+                   (clojure.lang.DynamicClassLoader. base)))))
+  @Compiler/LOADER)
+
 (defn load-deps
   [coords]
   (println "Adding dependencies to classpath: " coords)
-  (ensure-compiler-loader)
-  (add-dependencies :coordinates coords
-                    :repositories (merge maven-central
-                                         {"clojars" "https://clojars.org/repo"})
-                    :classloader @clojure.lang.Compiler/LOADER))
+  (let [loader (ensure-compiler-loader)]
+    (add-dependencies :coordinates coords
+                      :repositories (merge maven-central
+                                           {"clojars" "https://clojars.org/repo"})
+                      :classloader loader)))
 
 (defn exit
   [code message]
