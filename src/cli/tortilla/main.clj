@@ -229,22 +229,21 @@
   "Ensures the clojure.lang.Compiler/LOADER var is bound to a DynamicClassLoader,
   so that we can add to Clojure's classpath dynamically."
   []
-  (when-not (bound? Compiler/LOADER)
-    (.bindRoot Compiler/LOADER
-               (let [base (clojure.lang.RT/baseLoader)]
-                 (if (instance? clojure.lang.DynamicClassLoader base)
-                   base
-                   (clojure.lang.DynamicClassLoader. base)))))
-  @Compiler/LOADER)
+  (when-not (instance? clojure.lang.DynamicClassLoader (clojure.lang.RT/baseLoader))
+    (println "Rebinding class loader")
+    (.bindRoot Compiler/LOADER (clojure.lang.RT/makeClassLoader)))
+  (clojure.lang.RT/baseLoader))
 
 (defn load-deps
   [coords]
   (println "Adding dependencies to classpath: " coords)
   (let [loader (ensure-compiler-loader)]
-    (add-dependencies :coordinates coords
-                      :repositories (merge maven-central
-                                           {"clojars" "https://clojars.org/repo"})
-                      :classloader loader)))
+    (when coords
+      (add-dependencies :coordinates coords
+                        :repositories (merge maven-central
+                                             {"clojars" "https://clojars.org/repo"})
+                        :classloader loader))
+    loader))
 
 (defn exit
   [code message]
@@ -258,13 +257,12 @@
       (exit code (:message options)))
     (when (:instrument options)
       (st/instrument))
-    (when-let [dep (:dep options)]
-      (load-deps dep))
     ;; Now map class names to Class instances. We couldn't do this earlier
     ;; (e.g. in a cli parse-fn) because they might come from a dynamically
     ;; loaded dependency.
-    (let [options (update options :class
-                          (partial mapv #(try (Class/forName %)
+    (let [loader (load-deps (:dep options))
+          options (update options :class
+                          (partial mapv #(try (.loadClass loader %)
                                               (catch ClassNotFoundException _
                                                 (exit 1 (str "Invalid class: " %))))))]
       (if-let [out-file (not-empty (:out options))]
