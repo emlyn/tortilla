@@ -392,15 +392,25 @@
                         members)
               (apply type-error ~(member-name (first members)) ~@fix-args ~more-arg)))))))
 
+(defn- arg-name
+  [arg]
+  (cond
+    (nil? arg)            "nil"
+    (symbol? arg)         (name arg)
+    (instance? Class arg) (class-name arg)
+    (sequential? arg)     (mapv arg-name arg)
+    :else (throw (Exception. (str "Unexpected type in arglist: " (type arg) " (" arg ")")))))
+
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
   (let [arities (group-by parameter-count members)]
     `(defn ~fname
-       {:arglists '~(map (fn [member]
-                           (cond-> (vec (take (parameter-count member)
-                                              (parameter-types member)))
-                             (member-varargs? member) (conj '& [(vararg-type member)])))
-                         members)}
+       {:arglists '~(sort-by arg-name
+                             (map (fn [member]
+                                    (cond-> (vec (take (parameter-count member)
+                                                       (parameter-types member)))
+                                      (member-varargs? member) (conj '& [(vararg-type member)])))
+                                  members))}
        ~@(loop [[[arity membs] & more :as all-membs] (sort arities)
                 variadics []
                 results []
