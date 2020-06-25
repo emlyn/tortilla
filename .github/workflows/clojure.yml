@@ -61,6 +61,11 @@ jobs:
         set -euo pipefail
         ./bin/tortilla -w 150 -c tortilla.testing.TestClass -n tortilla.test-class -o src/gen/tortilla/test_class.clj
 
+    - name: Run CLI on a dynamically loaded dependency
+      run: |
+        set -euo pipefail
+        ./bin/tortilla -d net.minidev:json-smart:2.3 -c net.minidev.json.JSONObject -m
+
     - name: Run reflection check on generated code
       run: |
         set -euo pipefail
