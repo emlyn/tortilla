@@ -14,6 +14,8 @@
   :source-paths ["src/main"]
   :test-paths ["src/test"]
 
+  :javac-options ["-source" "1.8"]
+
   :target-path "target/%s/"
 
   :repl-options {:init-ns tortilla.wrap-test}
