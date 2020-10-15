@@ -17,12 +17,18 @@ You have to use the special interop syntax,
 and either sprinkle type hints all over the place,
 or risk having runtime reflection killing performance.
 
+Calling vararg methods is also clumsy, as normal Java interop in Clojure
+doesn't have any special handling for them, so you have to manually wrap
+the variable arguments in a Java array using e.g. `into-array`.
+
 Tortilla aims to remedy this by using reflection at compile time to
 automatically generate reflection-free idiomatic Clojure function wrappers
 around Java class methods.
 These wrappers then know the parameter types of the various candidate overloads
 and can select the correct one with simple type checks that are much faster
 than full runtime reflection.
+They also provide variable-arity functions to wrap vararg methods so that
+they can be called idiomatically from Clojure.
 
 Tortilla is still in the early alpha stages of development
 and has not yet been heavily tested,
@@ -35,37 +41,45 @@ or any functionality that's missing.
 ## Usage
 
 There are two ways to use Tortilla: either as a macro that you call in your code to
-generqte the wrapper functions at compile time, or as a command-line interface (CLI)
-that you run before to generate Clojure source files that you then build with the
-rest of your code. There are pros and cons to both approaches.
-
-### Installation
-
-#### Macro
-
-Add Tortilla as a dependency to your project.
-The latest version is:
-
-[![Clojars Project](https://clojars.org/emlyn/tortilla/latest-version.svg)](https://clojars.org/emlyn/tortilla)
-
-#### CLI
-
-You can download the latest CLI executable from [github](//github.com/emlyn/tortilla/releases),
-or build it from source with `lein bin` in a clone of this repository.
-
-#### Pros & Cons
+generate the wrapper functions at compile time, or as a command-line interface (CLI)
+that you run as a separate step to generate Clojure source files that you then build
+with the rest of your code. There are pros and cons to both approaches:
 
 - Macro mode can adapt to different versions of the wrapped Java library automatically,
 just by changing the dependency.
 - Macro mode doesn't require a separate step to generate any Clojure wrapper source files,
 as everything happens during the normal build process.
 - CLI mode is easier to debug, as the generated source is available to inspect.
-- CLI mode generates better error messages, since they can refer to lines in the generated code.
+- CLI mode tends to generate better error messages when something goes wrong, since they can refer to lines in the generated code as opposed to just the macro call.
 - others...?
 
-### Filtering
+### Macro mode
 
-### Coercion
+#### Installation
+
+Add Tortilla as a dependency to your project.
+The latest version is:
+
+[![Clojars Project](https://clojars.org/emlyn/tortilla/latest-version.svg)](https://clojars.org/emlyn/tortilla)
+
+#### Defining wrappers
+
+You define wrappers for a Java class by calling the `defwrapper` macro:
+
+``` clojure
+(defwrapper )
+```
+
+#### Filtering
+
+#### Coercion
+
+### CLI Mode
+
+#### Installation
+
+You can download the latest CLI executable from [github](//github.com/emlyn/tortilla/releases),
+or build it from source with `lein bin` in a clone of this repository.
 
 ## Inspiration
 
