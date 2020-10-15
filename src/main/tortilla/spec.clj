@@ -322,7 +322,7 @@
 (s/fdef w/defwrapper
   :args (s/cat :klazz (s/or :symbol ::class-name
                             :class  ::class)
-               :opts (s/keys))
+               :opts (s/? (s/keys)))
   :ret  (s/cat :do #{'do}
                :funcs (s/* ::defn)))
 

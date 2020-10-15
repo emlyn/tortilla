@@ -467,13 +467,16 @@
   [prefix member]
   (->> member :name camel->kebab (str prefix) symbol))
 
-(defmacro defwrapper [klazz {:keys [prefix] :as opts}]
-  (let [klazz (cond-> klazz (symbol? klazz) resolve)
-        members (group-by (partial function-sym prefix)
-                          (class-members klazz opts))]
-    `(do
-       ~@(for [[fname membs] (sort members)]
-           (member-wrapper-form fname membs opts)))))
+(defmacro defwrapper
+  ([klazz]
+   `(defwrapper ~klazz {}))
+  ([klazz {:keys [prefix] :as opts}]
+   (let [klazz (cond-> klazz (symbol? klazz) resolve)
+         members (group-by (partial function-sym prefix)
+                           (class-members klazz opts))]
+     `(do
+        ~@(for [[fname membs] (sort members)]
+            (member-wrapper-form fname membs opts))))))
 
 (defn- defwrapperfn
   "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"
