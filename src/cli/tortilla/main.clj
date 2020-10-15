@@ -38,6 +38,7 @@
 
 (def cli-options
   [["-c" "--class CLASS"
+    :id :classes
     :desc "Class to generate a wrapper. May be specified multiple times."
     :default []
     :default-desc ""
@@ -143,7 +144,7 @@
                         (version/get-version "emlyn" "tortilla" "unknown")
                         (subs (version/get-revision "emlyn" "tortilla" "unknown") 0 7))}
 
-      (empty? (:class options))
+      (empty? (:classes options))
       {:exit 1
        :message (message summary "Must supply at least one class to wrap")}
 
@@ -178,9 +179,9 @@
              (not (re-find *filter-out* mstr))))))
 
 (defn ns-form
-  [{:keys [class namespace coerce refer-clojure filter-fn prefix]}]
+  [{:keys [classes namespace coerce refer-clojure filter-fn prefix]}]
   (let [core-symbols (-> 'clojure.core ns-publics keys set)
-        exclusions (->> class
+        exclusions (->> classes
                         (mapcat #(w/class-members % {:filter-fn filter-fn}))
                         (map #(w/function-sym prefix %))
                         (filter core-symbols)
@@ -236,7 +237,7 @@
   (when (and (:namespace options)
              (not (:members options)))
     (fipp/pprint (ns-form options)))
-  (doseq [cls (:class options)]
+  (doseq [cls (:classes options)]
     (print-class-form cls options)))
 
 (defn ensure-compiler-loader
@@ -275,7 +276,7 @@
     ;; (e.g. in a cli parse-fn) because they might come from a dynamically
     ;; loaded dependency.
     (let [loader (load-deps (:dep options))
-          options (update options :class
+          options (update options :classes
                           (partial mapv #(try (.loadClass ^ClassLoader loader %)
                                               (catch ClassNotFoundException _
                                                 (exit 1 (str "Invalid class: " %))))))]

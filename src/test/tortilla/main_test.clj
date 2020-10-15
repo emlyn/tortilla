@@ -38,7 +38,7 @@
   (testing "Non-option argument causes an error"
     (is (= 1 (:exit (m/validate-args ["invalid"])))))
   (testing "Valid options don't cause an error"
-    (is (= {:class ["java.lang.Number" "java.lang.String"]
+    (is (= {:classes ["java.lang.Number" "java.lang.String"]
             :metadata true
             :instrument true
             :coerce nil
