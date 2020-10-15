@@ -51,6 +51,7 @@ just by changing the dependency.
 as everything happens during the normal build process.
 - CLI mode is easier to debug, as the generated source is available to inspect.
 - CLI mode tends to generate better error messages when something goes wrong, since they can refer to lines in the generated code as opposed to just the macro call.
+- CLI mode can automatically add a `:refer-clojure :exclude` clause to the `ns` form to avoid compiler warrnings about redefined symbols.
 - others...?
 
 ### Macro mode
@@ -64,11 +65,49 @@ The latest version is:
 
 #### Defining wrappers
 
-You define wrappers for a Java class by calling the `defwrapper` macro:
+You define wrappers for a Java class by calling the `defwrapper` macro, for example:
 
 ``` clojure
-(defwrapper )
+;; define the wrapper functions:
+(defwrapper java.io.File)
+
+;; create a File object
+(def f (clojure.java.io/file "project.clj"))
+
+;; call the generated functions on the File object
+(get-name f)      ;; => "project.clj"
+(is-directory f)  ;; => false
+(exists f)        ;; => true
+(length f)        ;; => 2996
+(last-modified f) ;; => 1602755163000
 ```
+
+In the above example, Clojure will emit a warning like:
+
+``` text
+WARNING: list already refers to: #'clojure.core/list in namespace: user, being replaced by: #'user/list
+```
+
+This is because the File class has a member function called `list`, so when the wrapper function is created, this clashes with the `list` function in Clojure core.
+There are two ways to work around this:
+
+Either you can exclude the Clojure core functions from being imported by adding a clause to your `ns` form like:
+
+``` clojure
+(:refer-clojure :exclude [list])
+```
+
+If you use the CLI mode (see below), this can be handled automatically. If you still need to refer to the excluded function, you can still access it using its fully-qualified name (`clojure.core/list`).
+
+Alternatively, you can add a prefix to all generated function names when generating the wrappers:
+
+``` clojure
+(defwrapper java.io.File {:prefix "f-"})
+
+(f-get-name f) ;; => "project.clj"
+```
+
+Note that it's still possible to get clashes with a prefix, for example if a method is called `cat` and you use a prefix of `lazy-`, the generated function will clash with Clojure's `lazy-cat`.
 
 #### Filtering
 
@@ -76,10 +115,57 @@ You define wrappers for a Java class by calling the `defwrapper` macro:
 
 ### CLI Mode
 
-#### Installation
+#### Installing
 
 You can download the latest CLI executable from [github](//github.com/emlyn/tortilla/releases),
-or build it from source with `lein bin` in a clone of this repository.
+or build it from source with `lein bin` in a clone of this repository, which will put the executable in the `bin` subdirectory.
+
+#### Running
+
+You can get an overview of the options available with the `--help`/`-h` option:
+
+```text
+> ./bin/tortilla -h
+Usage: tortilla [options]
+
+Options:
+  -c, --class CLASS               Class to generate a wrapper. May be specified multiple times.
+  -m, --members                   Print list of class members instead of wrapper code (useful for checking -i/-x).
+  -i, --include REGEX             Only wrap members that match REGEX. Match members in format name(arg1.type,arg2.type):return.type
+  -x, --exclude REGEX             Exclude members that match REGEX from wrapping.
+  -n, --namespace NAMESPACE       Generate ns form at start of output with given name.
+      --[no-]refer-clojure        Generate refer-clojure clause excluding any wrapped names.
+      --coerce SYMBOL             Enable coercion using the function named by SYMBOL.
+  -p, --prefix PREFIX             Prefix generated function names (useful to avoid conflicts with clojure.core names.)
+  -o, --out FILE                  Write generated output to FILE.
+      --[no-]metadata             Include metadata in output.
+      --[no-]instrument           Instrument specs.
+      --[no-]unwrap-do            Unwrap 'do' form around defns.
+  -w, --width CHARS          100  Limit output width.
+  -d, --dep COORD                 Add jars to classpath. May be specified multiple times. COORD may be in leiningen format ('[group/artifact "version"]') or maven format (group:artifact:version). In both cases the group part is optional, and defaults to the artifact ID.
+  -v, --version                   Display version information.
+  -h, --help                      Display this help.
+```
+
+Here is an example of using the CLI to generate a wrapper file for the File class:
+
+``` text
+# Generate wrapper file:
+> ./bin/tortilla --class java.io.File --namespace java.io.file --out src/java/io/file.clj
+
+# Look at the start of the generated file:
+> head -n 10 src/java/io/file.clj
+(ns java.io.file
+  (:refer-clojure :exclude [list])
+  (:require [tortilla.wrap]))
+
+;; ==== java.io.File ====
+
+(clojure.core/defn can-execute
+  {:arglists '([java.io.File])}
+  (^{:tag java.lang.Boolean}
+   [p0_271]
+```
 
 ## Inspiration
 
