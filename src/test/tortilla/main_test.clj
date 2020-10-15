@@ -46,6 +46,7 @@
             :namespace nil
             :unwrap-do true
             :width 80
+            :refer-clojure true
             :dep '[[foo "1.0"]
                    [bar/baz "2.0"]]}
            (m/validate-args ["-c" "java.lang.Number" "-c" "java.lang.String" "-w" "80"
@@ -83,6 +84,19 @@
         (is (re-find #"(?m)^ *\(clojure.core/defn" stdout))
         (is (re-find #"(?m)\bint-value\b" stdout))
         (is (not (re-find coerce-check stdout)))))
+    (testing "Clojure exclusions"
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200" "-n" "test.ns"
+                                          "--no-refer-clojure" "-c" "tortilla.testing.ExclusionTest"))]
+        (is (not (re-find #":refer-clojure :exclude" stdout))))
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200" "-n" "test.ns"
+                                          "-c" "tortilla.testing.ExclusionTest"))]
+        (is (re-find #":refer-clojure :exclude \[cat val\]" stdout)))
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200" "-n" "test.ns"
+                                          "-p" "lazy-" "-c" "tortilla.testing.ExclusionTest"))]
+        (is (re-find #":refer-clojure :exclude \[lazy-cat\]" stdout)))
+      (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "-w" "200" "-n" "test.ns"
+                                          "-p" "busy-""-c" "tortilla.testing.ExclusionTest"))]
+        (is (not (re-find #":refer-clojure :exclude" stdout)))))
     (testing "Writing to file"
       (let [temp (.getPath
                   (doto (java.io.File/createTempFile "tortilla_test" ".clj")

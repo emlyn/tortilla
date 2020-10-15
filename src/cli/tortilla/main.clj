@@ -60,6 +60,10 @@
     :default nil
     :default-desc ""]
 
+   [nil "--[no-]refer-clojure"
+    :desc "Generate refer-clojure clause excluding any wrapped names."
+    :default true]
+
    [nil "--coerce SYMBOL"
     :desc "Enable coercion using the function named by SYMBOL."
     :parse-fn #(when-not (empty? %) (symbol %))
@@ -174,11 +178,21 @@
              (not (re-find *filter-out* mstr))))))
 
 (defn ns-form
-  [{:keys [namespace coerce]}]
-  `(~'ns ~namespace
-    (:require [tortilla.wrap]
-              ~@(when-let [coerce-ns (and coerce (symbol (clojure.core/namespace coerce)))]
-                  [[coerce-ns]]))))
+  [{:keys [class namespace coerce refer-clojure filter-fn prefix]}]
+  (let [core-symbols (-> 'clojure.core ns-publics keys set)
+        exclusions (->> class
+                        (mapcat #(w/class-members % {:filter-fn filter-fn}))
+                        (map #(w/function-sym prefix %))
+                        (filter core-symbols)
+                        distinct
+                        sort
+                        seq)]
+    `(~'ns ~namespace
+           ~@(when (and refer-clojure exclusions)
+               `[(:refer-clojure :exclude [~@exclusions])])
+           (:require [tortilla.wrap]
+                     ~@(when-let [coerce-ns (and coerce (symbol (clojure.core/namespace coerce)))]
+                         [[coerce-ns]])))))
 
 (defmacro with-filter
   [[include exclude] & body]
