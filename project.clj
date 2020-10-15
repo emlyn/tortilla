@@ -50,9 +50,9 @@
 
    :cli
    {:dependencies [[org.clojure/tools.cli "1.0.194"]
-                   [org.clojure/test.check "1.0.0"]
-                   [orchestra "2019.02.06-1"]
-                   [expound "0.8.5"]
+                   [org.clojure/test.check "1.1.0"]
+                   [orchestra "2020.09.18-1"]
+                   [expound "0.8.6"]
                    [fipp "0.6.23"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
@@ -64,9 +64,9 @@
    ;; duplicate :cli deps to workaround technomancy/leiningen#2683
    {:dependencies [[org.clojure/clojure "1.10.1"]
                    [org.clojure/tools.cli "1.0.194"]
-                   [org.clojure/test.check "1.0.0"]
-                   [orchestra "2019.02.06-1"]
-                   [expound "0.8.5"]
+                   [org.clojure/test.check "1.1.0"]
+                   [orchestra "2020.09.18-1"]
+                   [expound "0.8.6"]
                    [fipp "0.6.23"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
@@ -78,9 +78,9 @@
    :dev
    ;; [:cli] Have to duplicate :cli profile due to technomancy/leiningen#2683
    {:dependencies [[org.clojure/tools.cli "1.0.194"]
-                   [org.clojure/test.check "1.0.0"]
-                   [orchestra "2019.02.06-1"]
-                   [expound "0.8.5"]
+                   [org.clojure/test.check "1.1.0"]
+                   [orchestra "2020.09.18-1"]
+                   [expound "0.8.6"]
                    [fipp "0.6.23"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
@@ -92,11 +92,11 @@
    {:source-paths ["src/gen"]}
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2020.06.21"]]}
+   {:dependencies [[clj-kondo "2020.10.10"]]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "1.0.632"]
-                   [lambdaisland/kaocha-cloverage "1.0-45"]]}}
+   {:dependencies [[lambdaisland/kaocha "1.0.700"]
+                   [lambdaisland/kaocha-cloverage "1.0.63"]]}}
 
   :deploy-repositories
   [["releases" {:url "https://repo.clojars.org"
