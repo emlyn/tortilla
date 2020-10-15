@@ -81,6 +81,12 @@
     (is (= 'java.lang.Integer
            (-> tagged-int meta :tag)))))
 
+(deftest arg-name-test
+  (is (= ["java.lang.String" "foo" "nil"]
+         (#'w/arg-name [String 'foo nil])))
+  (is (thrown-with-msg? Exception #"Unexpected type in arglist"
+                        (#'w/arg-name [String 'foo "bar" nil]))))
+
 (deftest compile-time-fn-test
   (is (fn? (w/compile-time-fn nil)))
   (is (fn? (w/compile-time-fn 'nil)))
@@ -239,3 +245,8 @@
              (-> "/path/to/some_file"
                  tortilla-file-file
                  tortilla-file-get-name))))))
+
+  (declare compare-to)
+  (deftest omit-opts
+    (is (w/defwrapper Comparable))
+    (is (zero? (compare-to 0 0))))
