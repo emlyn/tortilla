@@ -245,20 +245,19 @@
   so that we can add to Clojure's classpath dynamically."
   []
   (when-not (instance? clojure.lang.DynamicClassLoader (clojure.lang.RT/baseLoader))
-    (println "Rebinding class loader")
-    (.bindRoot Compiler/LOADER (clojure.lang.RT/makeClassLoader)))
-  (clojure.lang.RT/baseLoader))
+    (.bindRoot Compiler/LOADER (clojure.lang.RT/makeClassLoader))))
 
 (defn load-deps
   [coords]
-  (println "Adding dependencies to classpath: " coords)
-  (let [loader (ensure-compiler-loader)]
-    (when coords
-      (add-dependencies :coordinates coords
-                        :repositories (merge maven-central
-                                             {"clojars" "https://clojars.org/repo"})
-                        :classloader loader))
-    loader))
+  (if coords
+    (do (ensure-compiler-loader)
+        (let [loader (clojure.lang.RT/baseLoader)]
+          (add-dependencies :coordinates coords
+                            :repositories (merge maven-central
+                                                 {"clojars" "https://clojars.org/repo"})
+                            :classloader loader)
+          loader))
+    (clojure.lang.RT/baseLoader)))
 
 (defn exit
   [code message]
