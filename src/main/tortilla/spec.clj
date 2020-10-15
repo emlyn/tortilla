@@ -324,10 +324,12 @@
                             :class  ::class)
                :opts (s/? (s/keys)))
   :ret  (s/cat :do #{'do}
-               :funcs (s/* ::defn)))
+               :funcs (s/* ::defn)
+               :nil (s/? nil?)))
 
 (s/fdef w/defwrapperfn
   :args (s/cat :klazz (s/or :symbol ::class-name
                             :class  ::class))
   :ret  (s/cat :do #{'do}
-               :funcs (s/* ::defn)))
+               :funcs (s/* ::defn)
+               :nil (s/? nil?)))

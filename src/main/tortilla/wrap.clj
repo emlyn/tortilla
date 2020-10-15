@@ -476,7 +476,8 @@
                            (class-members klazz opts))]
      `(do
         ~@(for [[fname membs] (sort members)]
-            (member-wrapper-form fname membs opts))))))
+            (member-wrapper-form fname membs opts))
+        nil))))
 
 (defn- defwrapperfn
   "Wrap macro in a function so it gets picked up by the automatic spec test.check generation"

@@ -113,7 +113,7 @@
 
 (deftest defwrapper-test
   (testing "Instantiating wrapper functions"
-    (is (w/defwrapper TestClass {:coerce coerce})))
+    (is (nil? (w/defwrapper TestClass {:coerce coerce}))))
 
   (testing "Calling a static wrapper function"
     (is (= "foo2_123_456"
@@ -188,7 +188,7 @@
 (declare x-with-primitives)
 (declare x-without-primitives)
 (deftest many-overloads
-  (is (w/defwrapper TestClass {:prefix "x-"}))
+  (is (nil? (w/defwrapper TestClass {:prefix "x-"})))
   (testing "With primitives"
     (is (= "boolean_1" (x-with-primitives false)))
     (is (= "char_1"    (x-with-primitives \x)))
@@ -226,21 +226,21 @@
 (deftest more-types
   (testing "Instantiating some more wrappers for better coverage"
     (testing "java.lang.String.format"
-      (is (w/defwrapper String       {:prefix "tortilla-string-"}))
+      (is (nil? (w/defwrapper String       {:prefix "tortilla-string-"})))
       (is (= "foo bar 42 0.000001"
              (tortilla-string-format "foo %s %d %f" "bar" 42 1e-6))))
     (testing "java.lang.Exception.getMessage"
-      (is (w/defwrapper Exception    {:prefix "tortilla-exception-"}))
+      (is (nil? (w/defwrapper Exception    {:prefix "tortilla-exception-"})))
       (is (= "this is a message"
              (-> "this is a message"
                  tortilla-exception-exception
                  tortilla-exception-get-message))))
     (testing "java.lang.System.getProperty"
-      (is (w/defwrapper System       {:prefix "tortilla-system-"}))
+      (is (nil? (w/defwrapper System       {:prefix "tortilla-system-"})))
       (is (= "value"
              (tortilla-system-get-property "tortilla#a.property-that_doesNot$exist" "value"))))
     (testing "java.io.File.getName"
-      (is (w/defwrapper java.io.File {:prefix "tortilla-file-"}))
+      (is (nil? (w/defwrapper java.io.File {:prefix "tortilla-file-"})))
       (is (= "some_file"
              (-> "/path/to/some_file"
                  tortilla-file-file
@@ -248,5 +248,5 @@
 
   (declare compare-to)
   (deftest omit-opts
-    (is (w/defwrapper Comparable))
+    (is (nil? (w/defwrapper Comparable)))
     (is (zero? (compare-to 0 0))))

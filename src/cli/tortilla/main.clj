@@ -223,7 +223,8 @@
       (if (and unwrap-do
                (seq? form)
                (= 'do (first form)))
-        (doseq [fn-form (rest form)]
+        (doseq [fn-form (cond-> (rest form)
+                          (= 'nil (last form)) butlast)]
           (println)
           (fipp/pprint fn-form
                        {:print-meta metadata
