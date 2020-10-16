@@ -1,0 +1,53 @@
+on:
+  push:
+    tags:
+    - '*'
+
+name: Create Release
+
+jobs:
+  build:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: mvn-${{ hashFiles('project.clj') }}
+        restore-keys: |
+          mvn-
+
+    - name: Install dependencies
+      run: |
+        set -euo pipefail
+        lein with-profile +clj-kondo,+kaocha deps
+
+    - name: Build CLI binary
+      run: |
+        set -euo pipefail
+        lein bin
+
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: true
+        prerelease: false
+
+    - name: Upload binary
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: bin/tortilla
+        asset_name: tortilla
+        asset_content_type: application/octet-stream

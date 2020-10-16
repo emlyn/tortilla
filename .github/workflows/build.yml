@@ -1,19 +1,19 @@
-name: Build
+name: Checks
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  build:
-
+  reflection:
+    name: Reflection checks
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Cache maven dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v2
       with:
-        path: ~/.m2
+        path: ~/.m2/repository
         key: mvn-${{ hashFiles('project.clj') }}
         restore-keys: |
           mvn-
@@ -29,10 +29,50 @@ jobs:
         lein check 2>&1 | tee check.out
         ! grep 'Reflection warning, tortilla/' check.out
 
+  lint:
+    name: Linter checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: mvn-${{ hashFiles('project.clj') }}
+        restore-keys: |
+          mvn-
+
+    - name: Install dependencies
+      run: |
+        set -euo pipefail
+        lein with-profile +clj-kondo,+kaocha deps
+
     - name: Run lint check
       run: |
         set -euo pipefail
         lein lint
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: mvn-${{ hashFiles('project.clj') }}
+        restore-keys: |
+          mvn-
+
+    - name: Install dependencies
+      run: |
+        set -euo pipefail
+        lein with-profile +clj-kondo,+kaocha deps
 
     - name: Run tests
       run: |
@@ -46,15 +86,30 @@ jobs:
         PR=$(bin/github_pr.sh ${{github.event_name}} ${{github.ref}})
         bin/coveralls.sh --token ${{secrets.CoverallsToken}} --pull "$PR"
 
+  binary:
+    name: CLI binary checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache maven dependencies
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: mvn-${{ hashFiles('project.clj') }}
+        restore-keys: |
+          mvn-
+
+    - name: Install dependencies
+      run: |
+        set -euo pipefail
+        lein with-profile +clj-kondo,+kaocha deps
+
     - name: Build CLI binary
       run: |
         set -euo pipefail
         lein bin
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: tortilla
-        path: bin/tortilla
 
     - name: Run CLI and write generated code
       run: |
