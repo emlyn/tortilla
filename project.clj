@@ -99,5 +99,4 @@
                    [lambdaisland/kaocha-cloverage "1.0.63"]]}}
 
   :deploy-repositories
-  [["releases" {:url "https://repo.clojars.org"
-                :creds :gpg}]])
+  {"releases" :clojars})
