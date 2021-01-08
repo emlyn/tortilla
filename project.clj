@@ -20,7 +20,7 @@
 
   :repl-options {:init-ns tortilla.wrap-test}
 
-  :deploy-branches ["master"]
+  :deploy-branches ["main"]
 
   :aliases
   {"run" ["with-profile" "+cli" "run"]
