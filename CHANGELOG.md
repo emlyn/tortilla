@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Reduced reflection warnings by tagging argslists forms with the return type
+
+## [0.1.3] - 2020-10-16
+
 - CLI now automatically generates :refer-clojure :exclude form to avoid warnings from generated code.
 - The options map can be excluded from defwrapper if no options need to be set.
 
@@ -25,7 +29,8 @@
 
 - Original code from [@plexus](//github.com/plexus) on [Clojureverse](https://clojureverse.org/t/generating-reflection-free-java-wrappers/4421).
 
-[Unreleased]: //github.com/emlyn/tortilla/compare/0.1.2...HEAD
+[Unreleased]: //github.com/emlyn/tortilla/compare/0.1.3...HEAD
+[0.1.3]: //github.com/emlyn/tortilla/compare/0.1.2...0.1.3
 [0.1.2]: //github.com/emlyn/tortilla/compare/0.1.1...0.1.2
 [0.1.1]: //github.com/emlyn/tortilla/compare/0.1.0...0.1.1
 [0.1.0]:      //github.com/emlyn/tortilla/compare/original...0.1.0
