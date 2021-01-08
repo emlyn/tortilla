@@ -410,7 +410,9 @@
                                     (tagged (cond-> (vec (take (parameter-count member)
                                                                (parameter-types member)))
                                               (member-varargs? member) (conj '& [(vararg-type member)]))
-                                            (:return-type member)))
+                                            (if (= (:return-type member) Void/TYPE)
+                                              Object
+                                              (:return-type member))))
                                   members))}
        ~@(loop [[[arity membs] & more :as all-membs] (sort arities)
                 variadics []
