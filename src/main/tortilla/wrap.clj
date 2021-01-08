@@ -407,9 +407,10 @@
     `(defn ~fname
        {:arglists '~(sort-by arg-name
                              (map (fn [member]
-                                    (cond-> (vec (take (parameter-count member)
-                                                       (parameter-types member)))
-                                      (member-varargs? member) (conj '& [(vararg-type member)])))
+                                    (tagged (cond-> (vec (take (parameter-count member)
+                                                               (parameter-types member)))
+                                              (member-varargs? member) (conj '& [(vararg-type member)]))
+                                            (:return-type member)))
                                   members))}
        ~@(loop [[[arity membs] & more :as all-membs] (sort arities)
                 variadics []
