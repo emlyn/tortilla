@@ -10,12 +10,6 @@
                            (throw (Exception. (str "exit " code " " message))))]
       (test-fn))))
 
-(deftest coercer-test
-  (is (instance? Integer (m/coerce 42   Integer)))
-  (is (instance? Float   (m/coerce 3.14 Float)))
-  (is (instance? Long    (m/coerce 99   String)))
-  (is (instance? String  (m/coerce "99" Integer))))
-
 (deftest parse-coords-test
   (is (= '[foo/bar "1.2.3"]
          (m/parse-coords "[foo/bar \"1.2.3\"]")
@@ -53,7 +47,7 @@
                              "-d" "foo:1.0" "-d" "[bar/baz \"2.0\"]"])))))
 
 (deftest main-test
-  (let [coerce-check #"\btortilla.main/coerce\b"]
+  (let [coerce-check #"\btortilla.coerce/coerce\b"]
     (testing "Listing members"
       (let [stdout (with-out-str (m/-main "--no-instrument" "-c" "java.lang.Number" "--members"))]
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -69,7 +63,7 @@
         (is (re-find #"(?m)intValue\(java.lang.Number\):int" stdout))))
     (testing "With coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do"
-                                          "--coerce" "tortilla.main/coerce"
+                                          "--coerce" "tortilla.coerce/coerce"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))
@@ -78,6 +72,7 @@
         (is (re-find coerce-check stdout))))
     (testing "Without coercer"
       (let [stdout (with-out-str (m/-main "--no-instrument" "--no-metadata" "--no-unwrap-do"
+                                          "--coerce" "none"
                                           "-w" "200" "-c" "java.lang.Object" "-c" "java.lang.Number"))]
         (is (re-find #"(?m)^;; =+ java.lang.Object =+$" stdout))
         (is (re-find #"(?m)^;; =+ java.lang.Number =+$" stdout))

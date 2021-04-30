@@ -225,7 +225,7 @@
 (s/fdef w/args-compatible
   :args (s/cat :member ::member
                :args (s/coll-of any? :kind vector? :min-count 1)
-               :coercer (s/? ::coercer))
+               :coerce (s/? ::coercer))
   :ret (s/nilable ::member)
   :fn #(or (-> % :ret nil?)
            (= (-> % :args :member :id)

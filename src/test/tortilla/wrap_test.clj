@@ -188,7 +188,7 @@
 (declare x-with-primitives)
 (declare x-without-primitives)
 (deftest many-overloads
-  (is (nil? (w/defwrapper TestClass {:prefix "x-"})))
+  (is (nil? (w/defwrapper TestClass {:prefix "x-" :coerce :none})))
   (testing "With primitives"
     (is (= "boolean_1" (x-with-primitives false)))
     (is (= "char_1"    (x-with-primitives \x)))
