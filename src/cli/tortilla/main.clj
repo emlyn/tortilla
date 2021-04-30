@@ -14,20 +14,6 @@
             [trptcolin.versioneer.core :as version])
   (:gen-class))
 
-(defprotocol Coercer
-  (coerce [val typ]))
-
-(extend-protocol Coercer
-  Object
-  (coerce [val _] val)
-
-  Number
-  (coerce [val typ]
-    (condp = typ
-      Integer (int val)
-      Float   (float val)
-      val)))
-
 (defn parse-coords
   [coord-str]
   (if (re-matches #"\[.*\]" coord-str)
@@ -66,8 +52,12 @@
     :default true]
 
    [nil "--coerce SYMBOL"
-    :desc "Enable coercion using the function named by SYMBOL."
-    :parse-fn #(when-not (empty? %) (symbol %))
+    :desc "Use SYMBOL for coercion (or 'none' to disable, empty for default)."
+    :parse-fn #(case %
+                 "" nil
+                 "none" :none
+                 ":none" :none
+                 (symbol %))
     :default nil
     :default-desc ""]
 
@@ -192,8 +182,11 @@
            ~@(when (and refer-clojure exclusions)
                `[(:refer-clojure :exclude [~@exclusions])])
            (:require [tortilla.wrap]
-                     ~@(when-let [coerce-ns (and coerce (symbol (clojure.core/namespace coerce)))]
-                         [[coerce-ns]])))))
+                     ~@(some-> (w/resolve-coercer coerce)
+                               clojure.core/namespace
+                               symbol
+                               vector
+                               vector)))))
 
 (defmacro with-filter
   [[include exclude] & body]

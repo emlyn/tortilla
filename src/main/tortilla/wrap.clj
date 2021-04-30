@@ -235,9 +235,9 @@
                       (parameter-types member)
                       args))
      (assoc member :invocation-args args)))
-  ([member args coercer]
+  ([member args coerce]
    (when-let [iargs (reduce (fn [r [arg typ]]
-                              (let [coerced (coercer arg (ensure-boxed typ))]
+                              (let [coerced (coerce arg (ensure-boxed typ))]
                                 (if (compatible-type? typ coerced)
                                   (conj r coerced)
                                   (reduced nil))))
@@ -470,11 +470,17 @@
   [prefix member]
   (->> member :name camel->kebab (str prefix) symbol))
 
+(defn resolve-coercer
+  [coerce]
+  (when-not (= coerce :none)
+    (or coerce 'tortilla.coerce/coerce)))
+
 (defmacro defwrapper
   ([klazz]
    `(defwrapper ~klazz {}))
-  ([klazz {:keys [prefix] :as opts}]
-   (let [klazz (cond-> klazz (symbol? klazz) resolve)
+  ([klazz {:keys [prefix coerce] :as opts}]
+   (let [opts (assoc opts :coerce (resolve-coercer coerce))
+         klazz (cond-> klazz (symbol? klazz) resolve)
          members (group-by (partial function-sym prefix)
                            (class-members klazz opts))]
      `(do
