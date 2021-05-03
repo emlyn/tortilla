@@ -21,14 +21,19 @@ Calling vararg methods is also clumsy, as normal Java interop in Clojure
 doesn't have any special handling for them, so you have to manually wrap
 the variable arguments in a Java array using e.g. `into-array`.
 
+Java functions also tend to expect different types which need special handling to convert the usual Clojure values into the exoected types.
+For example functions that expect an `Integer` or a `Float` need the argument to be wrapped in `(int x)` or `(float y)`, those that expect an array need a Clojure vector or list to be wrapped in `(into-array TYPE my_vec)`.
+Additionally, in Java 8 there are Funcional Interfaces (that accept a lambda expression in Java), but from Clojure you need to wrap the Clojure function in `proxy` or `reify` to convert it to the right type.
+
 Tortilla aims to remedy this by using reflection at compile time to
 automatically generate reflection-free idiomatic Clojure function wrappers
 around Java class methods.
-These wrappers then know the parameter types of the various candidate overloads
-and can select the correct one with simple type checks that are much faster
-than full runtime reflection.
-They also provide variable-arity functions to wrap vararg methods so that
+These wrappers then know the parameter types of the various candidate overloads and can select the correct one with simple type checks that are much faster than full runtime reflection.
+They provide variable-arity functions to wrap vararg methods so that
 they can be called idiomatically from Clojure.
+Tortilla also includes support for automatically coercing Clojure types.
+So, for example, you can just pass normal Clojure longs and doubles, and tortilla will coerce them to Integer and Float respectively, when necessary.
+You can also pass in a Clojure vector when an array is excepcted, or a Clojure function when a Functional Interface is expected (e.g. `java.lang.function.Function`, `java.io.FileFilter`...)
 
 Tortilla is still in the early alpha stages of development
 and has not yet been heavily tested,
@@ -113,6 +118,26 @@ Note that it's still possible to get clashes with a prefix, for example if a met
 
 #### Coercion
 
+Tortilla can handle the automatic coercion of values to Java types.
+By default it will coerce:
+- Long values to Integers, so Java functions that expect Integers can be called with `(f 1)` instead of manually coercing like `(f (int 1))`.
+- Double values to Floats, so you can use `(f 1.0)` instead of `(f (float 1.0))`.
+- Keywords to Enums, so instead of having to include `(:import [package.name EnumClass])` in your ns declaration then use `(f EnumClass/VALUE)`, you can just use `(f :VALUE)`.
+- Vectors to Java arrays, so if a function expects an array of Strings, you can just use `(f ["Hello" "world"])` instead of `(f (into-arrray String ["Hello" "world"]))`.
+- Functions into Java Functional Interfaces (types that accept lambda expressions in Java 8+), so you can call, for example java.io.File::list, as `(list file #(str/ends-with? %2 ".txt"))` instead of having to do something like:
+  ```clojure
+  (let [filter (reify java.io.FilenameFilter
+                 (accept [_self _dir name]
+                   (str/ends-with? name ".txt")))]
+    (list file filter))
+  ```
+  Note that tortilla currently by default only supports a predetermined list of Functional Interfaces (listed in `tortilla.coerce`).
+  Support for other types can be added by calling the `tortilla.coerce/coerce-fn-impl` macro with the new Functional Interface.
+
+The default coerce implementation can be extended by extending the `Coercible` protocol in `tortilla.coerce` to new Clojure types and/or defining new methods for the `coerce-long`, `coerce-double`, `coerce-kw`, `coerce-vector` and `coerce-fn` multimethods.
+
+Alternatively, a completely different implementation can be passsed in to `defwrapper` (or the keyword `:none` to disable coercion). The new function should accept two arguments: the clojure value and a `Class` object representing the target type. It should return either a value of the target type if it can coerce successfully, or the original value unaltered.
+
 ### CLI Mode
 
 #### Installing
@@ -135,7 +160,7 @@ Options:
   -x, --exclude REGEX             Exclude members that match REGEX from wrapping.
   -n, --namespace NAMESPACE       Generate ns form at start of output with given name.
       --[no-]refer-clojure        Generate refer-clojure clause excluding any wrapped names.
-      --coerce SYMBOL             Enable coercion using the function named by SYMBOL.
+      --coerce SYMBOL             Use SYMBOL for coercion (or 'none' to disable, empty for default).
   -p, --prefix PREFIX             Prefix generated function names (useful to avoid conflicts with clojure.core names.)
   -o, --out FILE                  Write generated output to FILE.
       --[no-]metadata             Include metadata in output.
