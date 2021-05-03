@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Reduced reflection warnings by tagging argslists forms with the return type
+- Automatic coercion of arguments
 
 ## [0.1.3] - 2020-10-16
 
