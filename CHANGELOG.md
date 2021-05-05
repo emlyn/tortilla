@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.1.4] - 2021-05-05
+
 - Reduced reflection warnings by tagging argslists forms with the return type
 - Automatic coercion of arguments
 
@@ -30,9 +32,10 @@
 
 - Original code from [@plexus](//github.com/plexus) on [Clojureverse](https://clojureverse.org/t/generating-reflection-free-java-wrappers/4421).
 
-[Unreleased]: //github.com/emlyn/tortilla/compare/0.1.3...HEAD
-[0.1.3]: //github.com/emlyn/tortilla/compare/0.1.2...0.1.3
-[0.1.2]: //github.com/emlyn/tortilla/compare/0.1.1...0.1.2
-[0.1.1]: //github.com/emlyn/tortilla/compare/0.1.0...0.1.1
+[Unreleased]: //github.com/emlyn/tortilla/compare/0.1.4...HEAD
+[0.1.4]:      //github.com/emlyn/tortilla/compare/0.1.3...0.1.4
+[0.1.3]:      //github.com/emlyn/tortilla/compare/0.1.2...0.1.3
+[0.1.2]:      //github.com/emlyn/tortilla/compare/0.1.1...0.1.2
+[0.1.1]:      //github.com/emlyn/tortilla/compare/0.1.0...0.1.1
 [0.1.0]:      //github.com/emlyn/tortilla/compare/original...0.1.0
 [Original]:   //github.com/emlyn/tortilla/commit/original
