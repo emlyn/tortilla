@@ -8,7 +8,10 @@
 (defmulti coerce-double (fn [_val typ] typ))
 (defmulti coerce-kw     (fn [_val typ] typ))
 (defmulti coerce-vector (fn [_val typ] typ))
+(defmulti coerce-list   (fn [_val typ] typ))
+(defmulti coerce-map    (fn [_val typ] typ))
 (defmulti coerce-fn     (fn [_val typ] typ))
+(defmulti coerce-nil    (fn [_val typ] typ))
 
 (extend-protocol Coercible
   Long
@@ -27,12 +30,21 @@
   (coerce [val typ]
     (coerce-vector val typ))
 
+  clojure.lang.PersistentList
+  (coerce [val typ]
+    (coerce-list val typ))
+
+  clojure.lang.APersistentMap
+  (coerce [val typ]
+    (coerce-map val typ))
+
   clojure.lang.AFn
   (coerce [val typ]
     (coerce-fn val typ))
 
   nil
-  (coerce [_ _] nil)
+  (coerce [val typ]
+    (coerce-nil val typ))
 
   Object
   (coerce [val _] val))
@@ -80,7 +92,13 @@
           val)))
     val))
 
+(defmethod coerce-list :default [val _typ] val)
+
+(defmethod coerce-map :default [val _typ] val)
+
 (defmethod coerce-fn :default [val _typ] val)
+
+(defmethod coerce-nil :default [val _typ] val)
 
 (defmacro coerce-fn-impl [typ]
   ;; Ignore symbols that don't resolve,
