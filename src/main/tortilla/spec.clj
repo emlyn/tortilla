@@ -80,9 +80,23 @@
               `nop-coercer
               #'nop-coercer})))
 
+;; To ensure we don't emit anything from code-generating macros that can't be printed/evaluated
+(s/def ::source-code
+  (s/or :symbol symbol?
+        :keyword keyword?
+        :string string?
+        :number number?
+        :nil nil?
+        :class #(instance? Class %) ;; Are these OK, or should they be symbols?
+        :list (s/coll-of ::source-code :kind seq?)
+        :vector (s/coll-of ::source-code :kind vector?)
+        :set (s/coll-of ::source-code :kind set?)
+        :map (s/map-of ::source-code ::source-code)))
+
 (s/def ::defn
   (s/spec (s/cat :defn #{`defn}
-                 :args ::cs/defn-args)))
+                 :args (s/& ::cs/defn-args
+                            ::source-code))))
 
 ;; General
 
@@ -291,13 +305,15 @@
                                                :kind vector? :distinct true))
                :variadics (s/coll-of (s/and ::member w/member-varargs?)
                                      :kind vector? :distinct true)
-               :options (s/keys)))
+               :options (s/keys))
+  :ret ::source-code)
 
 (s/fdef w/variadic-wrapper-form
   :args (s/cat :min-arity nat-int?
                :members (s/coll-of (s/and ::member w/member-varargs?)
                                    :kind vector? :distinct true :min-count 1)
-               :options (s/keys)))
+               :options (s/keys))
+  :ret ::source-code)
 
 (s/fdef w/member-wrapper-form
   :args (s/cat :fname simple-symbol?

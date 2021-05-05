@@ -81,11 +81,13 @@
     (is (= 'java.lang.Integer
            (-> tagged-int meta :tag)))))
 
-(deftest arg-name-test
-  (is (= ["java.lang.String" "foo" "nil"]
-         (#'w/arg-name [String 'foo nil])))
-  (is (thrown-with-msg? Exception #"Unexpected type in arglist"
-                        (#'w/arg-name [String 'foo "bar" nil]))))
+(deftest arg-sym-test
+  (is (= 'java.lang.String (#'w/arg-sym String)))
+  (is (= 'java.lang.Long   (#'w/arg-sym Long)))
+  (is (= 'long             (#'w/arg-sym Long/TYPE)))
+  (is (= '[java.lang.Long] (#'w/arg-sym (type (into-array Long [])))))
+  (is (= '[long]           (#'w/arg-sym (type (long-array [])))))
+  (is (= '[[int]]          (#'w/arg-sym (type (into-array [(int-array [])]))))))
 
 (deftest compile-time-fn-test
   (is (fn? (w/compile-time-fn nil)))

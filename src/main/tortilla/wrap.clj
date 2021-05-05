@@ -1,6 +1,7 @@
 (ns tortilla.wrap
   (:require [clojure.set :as set]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [tortilla.coerce])
   (:import [java.lang.reflect Constructor Method Modifier]))
 
 ;; General
@@ -392,24 +393,22 @@
                         members)
               (apply type-error ~(member-name (first members)) ~@fix-args ~more-arg)))))))
 
-(defn- arg-name
-  [arg]
-  (cond
-    (nil? arg)            "nil"
-    (symbol? arg)         (name arg)
-    (instance? Class arg) (class-name arg)
-    (sequential? arg)     (mapv arg-name arg)
-    :else (throw (Exception. (str "Unexpected type in arglist: " (type arg) " (" arg ")")))))
+(defn- arg-sym
+  [^Class arg]
+  (if (array-class? arg)
+    [(arg-sym (array-component arg))]
+    (symbol (class-name arg))))
 
 ;; Generate defn form for all arities of a named member
 (defn member-wrapper-form [fname members opts]
   (let [arities (group-by parameter-count members)]
     `(defn ~fname
-       {:arglists '~(sort-by arg-name
+       {:arglists '~(sort-by str
                              (map (fn [member]
-                                    (tagged (cond-> (vec (take (parameter-count member)
-                                                               (parameter-types member)))
-                                              (member-varargs? member) (conj '& [(vararg-type member)]))
+                                    (tagged (cond-> (mapv arg-sym
+                                                          (take (parameter-count member)
+                                                                (parameter-types member)))
+                                              (member-varargs? member) (conj '& [(arg-sym (vararg-type member))]))
                                             (if (= (:return-type member) Void/TYPE)
                                               Object
                                               (:return-type member))))
