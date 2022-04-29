@@ -42,7 +42,7 @@
 
   :profiles
   {:provided
-   {:dependencies [[org.clojure/clojure "1.10.3"]]}
+   {:dependencies [[org.clojure/clojure "1.11.1"]]}
 
    :checks
    {:global-vars {*warn-on-reflection* true}
@@ -50,10 +50,10 @@
 
    :cli
    {:dependencies [[org.clojure/tools.cli "1.0.206"]
-                   [org.clojure/test.check "1.1.0"]
+                   [org.clojure/test.check "1.1.1"]
                    [orchestra "2021.01.01-1"]
-                   [expound "0.8.9"]
-                   [fipp "0.6.23"]
+                   [expound "0.9.0"]
+                   [fipp "0.6.25"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
@@ -62,12 +62,12 @@
 
    :uberjar
    ;; duplicate :cli deps to workaround technomancy/leiningen#2683
-   {:dependencies [[org.clojure/clojure "1.10.3"]
+   {:dependencies [[org.clojure/clojure "1.11.1"]
                    [org.clojure/tools.cli "1.0.206"]
-                   [org.clojure/test.check "1.1.0"]
+                   [org.clojure/test.check "1.1.1"]
                    [orchestra "2021.01.01-1"]
-                   [expound "0.8.9"]
-                   [fipp "0.6.23"]
+                   [expound "0.9.0"]
+                   [fipp "0.6.25"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
@@ -78,10 +78,10 @@
    :dev
    ;; [:cli] Have to duplicate :cli profile due to technomancy/leiningen#2683
    {:dependencies [[org.clojure/tools.cli "1.0.206"]
-                   [org.clojure/test.check "1.1.0"]
+                   [org.clojure/test.check "1.1.1"]
                    [orchestra "2021.01.01-1"]
-                   [expound "0.8.9"]
-                   [fipp "0.6.23"]
+                   [expound "0.9.0"]
+                   [fipp "0.6.25"]
                    [com.cemerick/pomegranate "1.1.0"]
                    [trptcolin/versioneer "0.2.0"]]
     :source-paths ["src/cli"]
@@ -92,10 +92,10 @@
    {:source-paths ["src/gen"]}
 
    :clj-kondo
-   {:dependencies [[clj-kondo "2021.04.23"]]}
+   {:dependencies [[clj-kondo "2022.04.25"]]}
 
    :kaocha
-   {:dependencies [[lambdaisland/kaocha "1.0.829"]
+   {:dependencies [[lambdaisland/kaocha "1.66.1034"]
                    [lambdaisland/kaocha-cloverage "1.0.75"]]}}
 
   :deploy-repositories
