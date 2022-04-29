@@ -1,4 +1,4 @@
-(defproject emlyn/tortilla "0.1.5-SNAPSHOT"
+(defproject emlyn/tortilla "0.1.5"
   :description "A thin wrapper for accessing Java classes from Clojure"
 
   :url "https://github.com/emlyn/tortilla"
