@@ -193,7 +193,7 @@
   `(binding [*filter-in* ~include
              *filter-out* ~exclude
              s/*explain-out* (expound/custom-printer {:show-valid-values? true})]
-     ~@body))
+     (do ~@body)))
 
 (defn class-form
   [cls {:keys [include exclude coerce prefix]}]
