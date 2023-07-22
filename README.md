@@ -10,6 +10,11 @@
 [![Dependencies Status](https://versions.deps.co/emlyn/tortilla/status.svg)](https://versions.deps.co/emlyn/tortilla)
 [![Downloads](https://img.shields.io/clojars/dt/emlyn/tortilla.svg)](https://clojars.org/emlyn/tortilla)
 
+## Warning
+
+This library is very experimental, and the current implementation is not efficient.
+In fact, IT IS SLOWER THAN NORMAL UNHINTED INTEROP CODE (see [comment](https://github.com/emlyn/tortilla/issues/20#issuecomment-1646567785)), so it is not recommended for use at the moment.
+
 ## Introduction
 
 Interfacing to Java libraries from Clojure can be ugly.
